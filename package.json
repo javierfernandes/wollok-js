@@ -9,6 +9,7 @@
     "dist"
   ],
   "scripts": {
+    "fafafa": "eslint src/*.js",
     "prepublish": "gulp compile && gulp wre",
     "test": "gulp test",
     "lint": "gulp lint",

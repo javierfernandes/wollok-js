@@ -1,6 +1,6 @@
 import { propertyValues } from './utils/object'
 
-const { assign, keys } = Object
+const { assign, keys } = Object   
 
 //===============================================================================================================================
 // BEHAVIOUR
