@@ -46,7 +46,7 @@
     "quotes": "warn",
     "key-spacing": "warn",
     "arrow-spacing": "warn",
-    "no-trailing-spaces": "warn",
+    "no-trailing-spaces": "error",
     "object-property-newline": "warn",
     "no-multi-spaces": "warn",
     "prefer-arrow-callback": "warn",
