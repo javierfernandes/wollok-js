@@ -1,10 +1,11 @@
+import { expectNoLinkageError, expectScopeOf, expectUnresolvedVariable } from '../link-expects'
+
+import { Method } from '../../../src/model'
 import { expect } from 'chai'
-import { expectNoLinkageError, expectUnresolvedVariable, expectScopeOf } from '../link-expects'
 import { link } from '../../../src/linker/linker'
 import parse from '../../../src/parser'
-import { Method } from '../../../src/model'
 
-describe('Method scoping', () => {
+describe.skip('Method scoping', () => {
 
   describe('instance variables', () => {
     it('links a ref to a class instance variable', () => {

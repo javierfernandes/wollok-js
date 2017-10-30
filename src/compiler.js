@@ -1,8 +1,8 @@
-import { Assignment, Block, Catch, Class, Closure, Constructor, Field, File, If, List, Literal, Method, Mixin, New, Parameter, Program, Reference, Return, Send, Singleton, Super, Throw, Try, VariableDeclaration, traverse } from './model'
-import { Link } from './linker/steps/link'
-import { resolvePath } from './linker/scoping'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Send, Singleton, Super, Throw, Try, VariableDeclaration, traverse } from './model'
 
+import { Link } from './linker/steps/link'
 import { addDefaultConstructor } from './transformations'
+import { resolvePath } from './linker/scoping'
 
 const escape = str => ([
   'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
@@ -156,7 +156,7 @@ const compileWithNatives = (natives = {}) => {
       return c
     })()`,
 
-    [File]: ({ content }) => {
+    [Package]: ({ elements }) => {
       const hoist = (unhoisted, hoisted = []) => {
         if (!unhoisted.length) return hoisted
 
@@ -177,7 +177,7 @@ const compileWithNatives = (natives = {}) => {
         return hoist(others, [...hoisted, next])
       }
 
-      const compiled = hoist(content).map(compile)
+      const compiled = hoist(elements).map(compile)
       // console.log('WCOMPILED:', compiled)
       return compiled.join(';\n')
     },

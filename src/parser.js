@@ -1,6 +1,6 @@
 import { generate } from 'pegjs'
-import { readFileSync } from 'fs'
 import path from 'path'
+import { readFileSync } from 'fs'
 
 let parser = null
 
@@ -14,6 +14,10 @@ try {
   parser = require(`./${grammar}`)
 }
 
-// const exportable = parser
+export default parser.parse
 
-export default parser.parse // exportable
+export const parseFile = (fileContent, fileName = '') => {
+  const packageNode = parser.parse
+  packageNode.name = fileName
+  return packageNode
+}

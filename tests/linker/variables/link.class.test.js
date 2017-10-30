@@ -1,7 +1,7 @@
-import { expectScopeOf } from '../link-expects'
 import { Class } from '../../../src/model'
+import { expectScopeOf } from '../link-expects'
 
-describe('Class - variable resolution', () => {
+describe.skip('Class - variable resolution', () => {
 
   it('Class scope includes instance variables', () => {
     expectScopeOf(`

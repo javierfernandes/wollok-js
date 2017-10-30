@@ -1,8 +1,9 @@
+import { parsePathPart, resolvePath } from '../../src/linker/scoping'
+
 import { expect } from 'chai'
-import { resolvePath, parsePathPart } from '../../src/linker/scoping'
 import { node } from '../../src/model'
 
-describe('resolvePath', () => {
+describe.skip('resolvePath', () => {
 
   it('resolves a simple field access', () => {
     const n = node('person')({

@@ -6,6 +6,7 @@ import del from 'del'
 import eslint from 'gulp-eslint'
 import mocha from 'gulp-mocha'
 import pegjs from 'gulp-pegjs'
+import sourcemaps from 'gulp-sourcemaps'
 
 const task = gulp.task.bind(gulp)
 
@@ -21,7 +22,9 @@ task('peg', ['clean'], () =>
 
 task('babel', ['clean'], () =>
   src('src/**/*.js')
+    .pipe(sourcemaps.init())
     .pipe(babel())
+    .pipe(sourcemaps.write('.'))
     .pipe(dest('dist'))
 )
 

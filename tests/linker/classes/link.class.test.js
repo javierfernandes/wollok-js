@@ -1,10 +1,11 @@
-import { expectWrongLinkTypeAt, expectNoLinkageError, expectUnresolvedVariable, expectScopeHasNames, expectToBeLinkedTo } from '../link-expects'
-import { link } from '../../../src/linker/linker'
-import { queryNodeByType } from '../../../src/visitors/visiting'
-import { New, Class, Mixin } from '../../../src/model'
-import parse from '../../../src/parser'
+import { Class, Mixin, New } from '../../../src/model'
+import { expectNoLinkageError, expectScopeHasNames, expectToBeLinkedTo, expectUnresolvedVariable, expectWrongLinkTypeAt } from '../link-expects'
 
-describe('Class linkage', () => {
+import { link } from '../../../src/linker/linker'
+import parse from '../../../src/parser'
+import { queryNodeByType } from '../../../src/visitors/visiting'
+
+describe.skip('Class linkage', () => {
 
   it('File scope includes the classes', () => {
     expectScopeHasNames(link(parse(`

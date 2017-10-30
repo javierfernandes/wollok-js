@@ -2,7 +2,7 @@ import { expectNoLinkageError, expectUnresolvedVariable } from '../link-expects'
 
 // RE ENABLE ALL THE SKIPPED ONCE THE PARSER FIXES CATCHES
 
-describe('Try-catch scoping', () => {
+describe.skip('Try-catch scoping', () => {
 
   it.skip('resolves a reference to local variable inside the try', () => {
     expectNoLinkageError(`

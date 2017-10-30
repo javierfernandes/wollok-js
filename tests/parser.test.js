@@ -5,7 +5,6 @@ import {
   Closure,
   Constructor,
   Field,
-  File,
   If,
   Import,
   List,
@@ -79,7 +78,7 @@ const fixture = {
   //-------------------------------------------------------------------------------------------------------------------------------
 
   file: {
-    ' // some comment \n import /* some other comment*/ p ': File(Import('p')),
+    ' // some comment \n import /* some other comment*/ p ': Package()(Import('p')),
   },
 
   import: {
@@ -485,7 +484,7 @@ describe('Wollok parser', () => {
         const result = () => parse(source, { startRule: grammar })
 
         if (expected === FAIL) it(`should not parse: ${source}`, () => expect(result).to.throw())
-        else it(`should parse: ${source} to: ${JSON.stringify(expected)}`, () => expect(result()).to.deep.equal(expected))
+        else it(`should parse: ${source}`, () => expect(result()).to.deep.equal(expected))
       }
     })
   }

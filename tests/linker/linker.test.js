@@ -2,7 +2,7 @@ import { expectNoLinkageError } from './link-expects'
 
 // tests
 
-describe('linker', () => {
+describe.skip('linker', () => {
 
   describe('Variable resolution', () => {
 

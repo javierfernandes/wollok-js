@@ -24,7 +24,7 @@ chai.use(also)
 
 // const interpret = (...asts) => interpreter(langNatives)(lang, ...asts)
 
-describe('Wollok interpreter', () => {
+describe.skip('Wollok interpreter', () => {
   let cachedLang;
 
   const lang = () => {

@@ -1,13 +1,12 @@
 import { expect } from 'chai'
-
-import { linkParentStep } from '../../../src/linker/steps/linkParent'
-import { visit } from '../../../src/visitors/visiting'
-import { node } from '../../../src/model'
 import { expectParentToBeLinkedTo } from '../link-expects'
+import { linkParentStep } from '../../../src/linker/steps/linkParent'
+import { node } from '../../../src/model'
+import { visit } from '../../../src/visitors/visiting'
 
 const linkParent = node => visit(linkParentStep)(node)
 
-describe('linkParentStep', () => {
+describe.skip('linkParentStep', () => {
 
   it('does not link a basic object', () => {
     expect(linkParent('hola')).to.deep.equal('hola')

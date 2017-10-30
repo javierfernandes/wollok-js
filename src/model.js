@@ -1,6 +1,6 @@
 import { propertyValues } from './utils/object'
 
-const { assign, keys } = Object
+const { assign, keys } = Object   
 
 //===============================================================================================================================
 // BEHAVIOUR
@@ -42,9 +42,6 @@ export const node = builder => body => ({ type: builder instanceof Function ? bu
 //===============================================================================================================================
 // NODES
 //===============================================================================================================================
-
-// TODO: Remove: Replace with Package
-export const File = (...content) => node(File)({ content })
 
 export const Parameter = (name, varArg = false) => node(Parameter)({ name, varArg })
 
@@ -112,6 +109,6 @@ export const TopLevel = [Import, Package, ...Module, ...Runnable]
 export const Member = [Field, Method, Constructor]
 export const Sentence = [VariableDeclaration, Return, Assignment]
 export const Expression = [Reference, Literal, List, Closure, Send, Super, New, If, Throw, Try]
-export const Node = [File, ...TopLevel, ...Member, ...Sentence, ...Expression, Catch, Parameter, Block]
+export const Node = [...TopLevel, ...Member, ...Sentence, ...Expression, Catch, Parameter, Block]
 
 Node.forEach(builder => { builder.toString = () => builder.name })

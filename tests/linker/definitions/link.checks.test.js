@@ -1,10 +1,11 @@
+import { Field, node as Node, Parameter } from '../../../src/model'
+import { a, many, or } from '../../../src/linker/types'
+
 import { expect } from 'chai'
-import { Parameter, Field, node as Node } from '../../../src/model'
-import { a, or, many } from '../../../src/linker/types'
 
 const ResolvedLink = (token, node) => Node('ResolvedLink')({ token, node })
 
-describe('Link checks', () => {
+describe.skip('Link checks', () => {
 
   describe('a()', () => {
     it('should say true for a ref of that type', () => {

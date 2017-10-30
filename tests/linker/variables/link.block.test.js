@@ -1,6 +1,6 @@
 import { expectNoLinkageError, expectUnresolvedVariable } from '../link-expects'
 
-describe('Block scoping', () => {
+describe.skip('Block scoping', () => {
 
   describe('If', () => {
     it('resolves a local variable on the positive side block', () => {

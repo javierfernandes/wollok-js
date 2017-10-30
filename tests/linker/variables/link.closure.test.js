@@ -1,7 +1,8 @@
-import { expectNoLinkageError, expectUnresolvedVariable, expectScopeOf } from '../link-expects'
+import { expectNoLinkageError, expectScopeOf, expectUnresolvedVariable } from '../link-expects'
+
 import { Closure } from '../../../src/model'
 
-describe('Closure scoping', () => {
+describe.skip('Closure scoping', () => {
   it('resolves a reference to a closure parameter', () => {
     expectNoLinkageError(`
       program p {

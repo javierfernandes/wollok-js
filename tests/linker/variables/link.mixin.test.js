@@ -1,7 +1,7 @@
-import { expectScopeOf } from '../link-expects'
 import { Mixin } from '../../../src/model'
+import { expectScopeOf } from '../link-expects'
 
-describe('Class scoping', () => {
+describe.skip('Class scoping', () => {
 
   it('Mixin scope includes instance variables', () => {
     expectScopeOf(`

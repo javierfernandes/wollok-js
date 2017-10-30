@@ -17,7 +17,7 @@ describe('common visitors', () => {
       `)
       const types = collect(root, n => n.type)
       expect(types).to.deep.equal([
-        'File',
+        'Package',
         'Program',
         'Block',
         'VariableDeclaration',

@@ -67,7 +67,7 @@ blockOrSentence = block
 // FILE
 //-------------------------------------------------------------------------------------------------------------------------------
 
-file = _ imports:import* _ elements:libraryElement* _ core:(main:program { return [main]} /test+)? _ { return File(...imports, ...elements, ...core||[]) }
+file = _ imports:import* _ elements:libraryElement* _ core:(main:program { return [main]} /test+)? _ { return Package()(...imports, ...elements, ...core||[]) }
 
 import = 'import' __ name:qualifiedName all:('.*')? _ { return Import(name + (all||'')) }
 
