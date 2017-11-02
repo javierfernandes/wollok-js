@@ -7,6 +7,7 @@ export const addDefaultConstructor = match({
 })
 
 // TODO: Test this
+//TODO: flatMap is not the right name for this. But what is?
 export const flatMap = cases => match({
   [Block]: node => match(cases)(node).copy({ sentences: sentences => sentences.map(flatMap(cases)) }),
   [Package]: node => match(cases)(node).copy({ elements: elements => elements.map(flatMap(cases)) }),

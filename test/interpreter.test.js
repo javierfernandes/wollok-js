@@ -14,10 +14,12 @@ import {
 } from '../src/model'
 import chai, { expect } from 'chai'
 import { describe, it } from 'mocha'
-import { interpreter, linker, parser } from '../src/index'
 
 import also from 'chai-also'
+import interpreter from '../src/interpreter'
 import langNatives from '../src/wre/lang.natives'
+import linker from '../src/linker'
+import parser from '../src/parser'
 import { readFileSync } from 'fs'
 
 chai.use(also)

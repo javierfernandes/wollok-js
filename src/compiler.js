@@ -86,7 +86,7 @@ const compileWithNatives = (natives = {}) => {
       // unresolved
       if (name.type !== Link.name) return escape(name)
       // resolved
-      const { token, path } = name
+      const { token } = name
       if (token === 'self') { return 'this' }
       const resolved = null//resolvePath(name, path)
       return (`${resolved.type === 'Field' ? 'this.' : ''}${escape(token)}`)

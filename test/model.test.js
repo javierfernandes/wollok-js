@@ -1,4 +1,4 @@
-import { Expression, Reference, VariableDeclaration } from './../../src/model'
+import { Expression, Reference, VariableDeclaration } from '../src/model'
 import { describe, it } from 'mocha'
 
 import { expect } from 'chai'

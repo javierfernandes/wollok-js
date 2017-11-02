@@ -1,16 +1,17 @@
-import { propertyValues } from './utils/object'
-
 const { assign, keys } = Object
+
+// GENERAL TODOs
+// - Handle the posibility of error on the linker (and perhaps think a global approach for the whole pipeline)
+// - Update compiler to new Linker
+// - Clean re-organize model / transformations
+// - Implement validations
+// - Refactor code using JS-Extensions
 
 //===============================================================================================================================
 // BEHAVIOUR
 //===============================================================================================================================
 
 export const typeComplies = (type, typeOrCategory) => typeOrCategory.toString().split(',').some(t => type === t)
-export const findValueByType = (behaviors, type) =>
-  propertyValues(behaviors)
-    .reduce((acc, { name, value }) => (typeComplies(type, name) ? value : acc), undefined)
-export const dispatchByType = (behaviors, defolt) => e => (findValueByType(behaviors, e.type) || defolt)(e)
 
 const nodeBehaviour = {
   is(typeOrCategory) {
@@ -45,6 +46,7 @@ export const node = builder => body => ({ type: builder instanceof Function ? bu
 
 export const Parameter = (name, varArg = false) => node(Parameter)({ name, varArg })
 
+//TODO: Rename all references to this node named "sentences" to something else, like "sentenceBlock" or "body"
 export const Block = (...sentences) => node(Block)({ sentences })
 
 //-------------------------------------------------------------------------------------------------------------------------------

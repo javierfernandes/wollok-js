@@ -72,6 +72,7 @@
     "no-multi-str": "off",
     "spaced-comment": "off",
     "no-with": "off",
-    "object-curly-newline":"off"
+    "object-curly-newline":"off",
+    "function-paren-newline": "off"
   }
 }
