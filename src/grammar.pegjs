@@ -4,7 +4,7 @@
   try {
     model = require('./model.js')
   } catch(error) {
-    model = require(path.resolve('./dist/model.js'))
+    model = require(path.resolve('./src/model.js'))
   }
 
   const {
@@ -17,7 +17,6 @@
     Field,
     File,
     If,
-    Import,
     List,
     Method,
     Mixin,
@@ -51,7 +50,7 @@ comment = '/*' (!'*/' .)* '*/' _  { return '' }
         / '//' (!'\n' .)* '\n'? _ { return '' }
 
 id = h:'^'? c:[a-zA-Z_]cs:[a-zA-Z0-9_]* { return (h || '') + c + cs.join('') }
-qualifiedName = root:id chain:('.' id)* { return [root, ...chain.map(([,name]) => name)].join('.') }
+qualifiedName = root:id chain:('.' id)* { return Reference([root, ...chain.map(([,name]) => name)].join('.')) }
 
 reference = name:id { return Reference(name) }
 
@@ -67,9 +66,9 @@ blockOrSentence = block
 // FILE
 //-------------------------------------------------------------------------------------------------------------------------------
 
-file = _ imports:import* _ elements:libraryElement* _ core:(main:program { return [main]} /test+)? _ { return Package()(...imports, ...elements, ...core||[]) }
+file = _ imports:import* _ elements:libraryElement* _ core:(main:program { return [main]} /test+)? _ { return Package(undefined, ...imports)(...elements, ...core||[]) }
 
-import = 'import' __ name:qualifiedName all:('.*')? _ { return Import(name + (all||'')) }
+import = 'import' __ name:qualifiedName all:('.*')? _ { return name.copy({name: _ => _ + (all||'')}) }
 
 program = _ 'program' __ name:id _ sentences:block _ { return Program(name)(...sentences) }
 
@@ -82,7 +81,7 @@ test = _ 'test' _ description:stringLiteral _ sentences:block _ { return Test(de
 
 libraryElement = element: (package / class / namedObject / mixin) _ { return element }
 
-package = 'package' __ name:qualifiedName _ '{' _ elements:libraryElement* _ '}' { return Package(name)(...elements) }
+package = 'package' __ name:id _ '{' _ elements:libraryElement* _ '}' { return Package(name)(...elements) }
 
 class = 'class' __ name:id superclass:(_ 'inherits' __ qualifiedName)? mixins:mixinInclusion _ '{' _ members:(memberDeclaration/constructor)* _ '}' { return Class(name)(superclass ? superclass[3] : undefined,...mixins)(...members) }
 
@@ -103,7 +102,7 @@ methodBody = 'native'
 
 memberDeclaration = member:(field / method) _ ';'? _ { return member }
 
-field = variable:variableDeclaration { return Field(variable.variable, variable.writeable, variable.value) }
+field = variable:variableDeclaration { return Field(variable.name, variable.writeable, variable.value) }
 
 method = override:('override' __)? 'method' __ name:methodName _ parameters:parameters _ sentences:methodBody? { return Method(name, !!override, sentences === 'native')(...parameters)(...!sentences || sentences === 'native' ? [] : sentences) }
 
@@ -113,11 +112,9 @@ constructor = 'constructor' _ parameters:parameters _ base:('=' _ ('self'/'super
 // SENTENCES
 //-------------------------------------------------------------------------------------------------------------------------------
 
-sentence = _ sentence:( variableDeclaration / return / assignment / expression) _ ';'? _ { return sentence }
+sentence = _ sentence:(variableDeclaration / return / assignment / expression) _ ';'? _ { return sentence }
 
-variableDeclaration = mutable:('var'/'const') __ reference:reference _ value:variableInitialization? { return VariableDeclaration(reference, mutable === 'var', value || undefined) }
-
-variableInitialization = '=' _ value:expression { return value }
+variableDeclaration = mutable:('var'/'const') _ name:id _ value:('=' _ expression)? { return VariableDeclaration(name, mutable === 'var', value ? value[2] : undefined) }
 
 return = 'return' _ expression:expression { return Return(expression) }
 
@@ -209,7 +206,7 @@ numberLiteral = ('0x'/'0X') value:[0-9a-fA-F]+ { return Literal(parseInt(value.j
               / value:[0-9]+                   { return Literal(parseInt(value.join(''), 10)) }
 
 collectionLiteral =  '[' _ values:(expression (_ ',' _ expression)*)? _ ']' { return List(...values ? [values[0],...values[1].map( ([,,,elem]) => elem )] : []) }
-                  / '#{' _ values:(expression (_ ',' _ expression)*)? _ '}' { return New('Set')(List(...values ? [values[0],...values[1].map( ([,,,elem]) => elem )] : [])) }
+                  / '#{' _ values:(expression (_ ',' _ expression)*)? _ '}' { return New(Reference('Set'))(List(...values ? [values[0],...values[1].map( ([,,,elem]) => elem )] : [])) }
 
 objectLiteral = 'object' superclass:(_ 'inherits' __ qualifiedName _ arguments?)? mixins:mixinInclusion _ '{' _ members:memberDeclaration* _ '}' { return Singleton()(superclass ? superclass[3] : undefined, superclass ? superclass[5] || undefined: undefined,...mixins)(...members) }
 

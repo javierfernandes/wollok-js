@@ -6,7 +6,6 @@ import {
   Constructor,
   Field,
   If,
-  Import,
   List,
   Literal,
   Method,
@@ -24,11 +23,11 @@ import {
   Throw,
   Try,
   VariableDeclaration
-} from '../dist/model'
+} from '../src/model'
 import { describe, it } from 'mocha'
 
 import { expect } from 'chai'
-import parse from './../dist/parser'
+import parse from './../src/parser'
 
 const FAIL = Symbol('FAIL')
 
@@ -78,14 +77,14 @@ const fixture = {
   //-------------------------------------------------------------------------------------------------------------------------------
 
   file: {
-    ' // some comment \n import /* some other comment*/ p ': Package()(Import('p')),
+    ' // some comment \n import /* some other comment*/ p ': Package(undefined, Reference('p'))(),
   },
 
   import: {
-    'import p': Import('p'),
-    'import /* comment */ p': Import('p'),
-    'import p.x': Import('p.x'),
-    'import p.x.*': Import('p.x.*'),
+    'import p': Reference('p'),
+    'import /* comment */ p': Reference('p'),
+    'import p.x': Reference('p.x'),
+    'import p.x.*': Reference('p.x.*'),
     'import p.*.x': FAIL,
     import: FAIL
   },
@@ -93,7 +92,7 @@ const fixture = {
   program: {
     'program name { }': Program('name')(),
     '  program name { }  ': Program('name')(),
-    'program name { const x = a.m(1) }': Program('name')(VariableDeclaration(Reference('x'), false, Send(Reference('a'), 'm')(Literal(1)))),
+    'program name { const x = a.m(1) }': Program('name')(VariableDeclaration('x', false, Send(Reference('a'), 'm')(Literal(1)))),
     'program { }': FAIL,
     'program name { ': FAIL,
     'program name': FAIL
@@ -101,7 +100,7 @@ const fixture = {
 
   test: {
     'test "name" { }': Test(Literal('name'))(),
-    'test "name" { const x = a.m(1) }': Test(Literal('name'))(VariableDeclaration(Reference('x'), false, Send(Reference('a'), 'm')(Literal(1)))),
+    'test "name" { const x = a.m(1) }': Test(Literal('name'))(VariableDeclaration('x', false, Send(Reference('a'), 'm')(Literal(1)))),
     'test { }': FAIL,
     'test "name" { ': FAIL,
     'test "name"': FAIL
@@ -113,22 +112,21 @@ const fixture = {
 
   package: {
     'package p {}': Package('p')(),
-    'package p.q {}': Package('p.q')(),
-    'package p.q { class C {} }': Package('p.q')(Class('C')()()),
-    'package p.q { class C {} object O {} }': Package('p.q')(Class('C')()(), Singleton('O', [])()()),
+    'package p { class C {} }': Package('p')(Class('C')()()),
+    'package p { class C {} object O {} }': Package('p')(Class('C')()(), Singleton('O', [])()()),
     'package p. {}': FAIL,
     'package p': FAIL
   },
 
   class: {
     'class C { }': Class('C')()(),
-    'class C { var v; method m() }': Class('C')()(Field(Reference('v'), true), Method('m')()()),
-    'class C inherits p.S { var v; method m() }': Class('C')('p.S')(Field(Reference('v'), true), Method('m')()()),
-    'class C inherits p.S mixed with p.M { }': Class('C')('p.S', 'p.M')(),
-    'class C inherits p.S mixed with p.M { var v; method m() }': Class('C')('p.S', 'p.M')(Field(Reference('v'), true), Method('m')()()),
-    'class C inherits p.S mixed with p.M and p.N { var v; method m() }': Class('C')('p.S', 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
-    'class C mixed with p.M and p.N { var v; method m() }': Class('C')('Object', 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
-    'class C { const a const b }': Class('C')()(Field(Reference('a'), false), Field(Reference('b'), false)),
+    'class C { var v; method m() }': Class('C')()(Field('v', true), Method('m')()()),
+    'class C inherits p.S { var v; method m() }': Class('C')(Reference('p.S'))(Field('v', true), Method('m')()()),
+    'class C inherits p.S mixed with p.M { }': Class('C')(Reference('p.S'), Reference('p.M'))(),
+    'class C inherits p.S mixed with p.M { var v; method m() }': Class('C')(Reference('p.S'), Reference('p.M'))(Field('v', true), Method('m')()()),
+    'class C inherits p.S mixed with p.M and p.N { var v; method m() }': Class('C')(Reference('p.S'), Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
+    'class C mixed with p.M and p.N { var v; method m() }': Class('C')(Reference('Object'), Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
+    'class C { const a const b }': Class('C')()(Field('a', false), Field('b', false)),
     'class { var v; method m() }': FAIL,
     'class C': FAIL,
     'class C inherits p.S mixed with p.M': FAIL,
@@ -140,7 +138,7 @@ const fixture = {
 
   mixin: {
     'mixin M { }': Mixin('M')(),
-    'mixin M { var v; method m() }': Mixin('M')(Field(Reference('v'), true), Method('m')()()),
+    'mixin M { var v; method m() }': Mixin('M')(Field('v', true), Method('m')()()),
     'mixin { var v; method m() }': FAIL,
     'mixin { constructor() }': FAIL,
     'mixin M': FAIL,
@@ -149,12 +147,12 @@ const fixture = {
 
   namedObject: {
     'object O { }': Singleton('O')()(),
-    'object O { var v; method m() }': Singleton('O')()(Field(Reference('v'), true), Method('m')()()),
-    'object O inherits p.S { var v; method m() }': Singleton('O')('p.S')(Field(Reference('v'), true), Method('m')()()),
-    'object O inherits p.S(a,b) { var v; method m() }': Singleton('O')('p.S', [Reference('a'), Reference('b')])(Field(Reference('v'), true), Method('m')()()),
-    'object O inherits p.S mixed with p.M { var v; method m() }': Singleton('O')('p.S', [], 'p.M')(Field(Reference('v'), true), Method('m')()()),
-    'object O inherits p.S mixed with p.M and p.N { var v; method m() }': Singleton('O')('p.S', [], 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
-    'object O mixed with p.M and p.N { var v; method m() }': Singleton('O')('Object', [], 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
+    'object O { var v; method m() }': Singleton('O')()(Field('v', true), Method('m')()()),
+    'object O inherits p.S { var v; method m() }': Singleton('O')(Reference('p.S'))(Field('v', true), Method('m')()()),
+    'object O inherits p.S(a,b) { var v; method m() }': Singleton('O')(Reference('p.S'), [Reference('a'), Reference('b')])(Field('v', true), Method('m')()()),
+    'object O inherits p.S mixed with p.M { var v; method m() }': Singleton('O')(Reference('p.S'), [], Reference('p.M'))(Field('v', true), Method('m')()()),
+    'object O inherits p.S mixed with p.M and p.N { var v; method m() }': Singleton('O')(Reference('p.S'), [], Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
+    'object O mixed with p.M and p.N { var v; method m() }': Singleton('O')(Reference('Object'), [], Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
     'object { var v; method m() }': FAIL,
     'object O { constructor() }': FAIL,
     'object O': FAIL,
@@ -170,10 +168,10 @@ const fixture = {
   //-------------------------------------------------------------------------------------------------------------------------------
 
   field: {
-    'var _foo123': Field(Reference('_foo123'), true),
-    'var _foo123 = b': Field(Reference('_foo123'), true, Reference('b')),
-    'const _foo123': Field(Reference('_foo123'), false),
-    'const _foo123 = b': Field(Reference('_foo123'), false, Reference('b')),
+    'var _foo123': Field('_foo123', true),
+    'var _foo123 = b': Field('_foo123', true, Reference('b')),
+    'const _foo123': Field('_foo123', false),
+    'const _foo123 = b': Field('_foo123', false, Reference('b')),
     var: FAIL,
     const: FAIL,
     'var 5': FAIL,
@@ -232,8 +230,8 @@ const fixture = {
   },
 
   variableDeclaration: {
-    'var _foo123': VariableDeclaration(Reference('_foo123'), true),
-    'const _foo123 = b': VariableDeclaration(Reference('_foo123'), false, Reference('b')),
+    'var _foo123': VariableDeclaration('_foo123', true),
+    'const _foo123 = b': VariableDeclaration('_foo123', false, Reference('b')),
     var: FAIL,
     const: FAIL,
     'var 5': FAIL,
@@ -364,9 +362,9 @@ const fixture = {
   //-------------------------------------------------------------------------------------------------------------------------------
 
   constructorCall: {
-    'new p.C()': New('p.C')(),
-    'new p.C(a)': New('p.C')(Reference('a')),
-    'new p.C(a, b++)': New('p.C')(Reference('a'), Assignment(Reference('b'), Send(Reference('b'), '_++')())),
+    'new p.C()': New(Reference('p.C'))(),
+    'new p.C(a)': New(Reference('p.C'))(Reference('a')),
+    'new p.C(a, b++)': New(Reference('p.C'))(Reference('a'), Assignment(Reference('b'), Send(Reference('b'), '_++')())),
     'new p.C': FAIL,
     new: FAIL
   },
@@ -399,9 +397,9 @@ const fixture = {
     'try x++': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))()(),
     'try {x++}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))()(),
     'try {x++} catch e h': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'))(Reference('h')))(),
-    'try {x++} catch e: foo.bar.E h': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'), 'foo.bar.E')(Reference('h')))(),
+    'try {x++} catch e: foo.bar.E h': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'), Reference('foo.bar.E'))(Reference('h')))(),
     'try{ x++ }catch e{h}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'))(Reference('h')))(),
-    'try{ x++ }catch e : foo.bar.E {h}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'), 'foo.bar.E')(Reference('h')))(),
+    'try{ x++ }catch e : foo.bar.E {h}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'), Reference('foo.bar.E'))(Reference('h')))(),
     'try {x++} catch e{h} then always f': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'))(Reference('h')))(Reference('f')),
     'try {x++} catch e{h} then always {f}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e'))(Reference('h')))(Reference('f')),
     'try {x++} catch e1{h1} catch e2{h2}': Try(Assignment(Reference('x'), Send(Reference('x'), '_++')()))(Catch(Parameter('e1'))(Reference('h1')), Catch(Parameter('e2'))(Reference('h2')))(),
@@ -445,18 +443,18 @@ const fixture = {
     '[]': List(),
     '[1]': List(Literal(1)),
     '[1,false,"foo"]': List(Literal(1), Literal(false), Literal('foo')),
-    '#{1 + b, -5}': New('Set')(List(Send(Literal(1), '+')(Reference('b')), Send(Literal(5), '-_')())),
+    '#{1 + b, -5}': New(Reference('Set'))(List(Send(Literal(1), '+')(Reference('b')), Send(Literal(5), '-_')())),
     '[': FAIL,
     '[1,2,': FAIL,
     '#{': FAIL,
     '#{1': FAIL,
     'object {}': Singleton()()(),
-    'object { var v; method m() }': Singleton()()(Field(Reference('v'), true), Method('m')()()),
-    'object inherits p.S { var v; method m() }': Singleton()('p.S')(Field(Reference('v'), true), Method('m')()()),
-    'object inherits p.S(a,b) { var v; method m() }': Singleton()('p.S', [Reference('a'), Reference('b')])(Field(Reference('v'), true), Method('m')()()),
-    'object inherits p.S mixed with p.M { var v; method m() }': Singleton()('p.S', [], 'p.M')(Field(Reference('v'), true), Method('m')()()),
-    'object inherits p.S mixed with p.M and p.N { var v; method m() }': Singleton()('p.S', [], 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
-    'object mixed with p.M and p.N { var v; method m() }': Singleton()('Object', [], 'p.M', 'p.N')(Field(Reference('v'), true), Method('m')()()),
+    'object { var v; method m() }': Singleton()()(Field('v', true), Method('m')()()),
+    'object inherits p.S { var v; method m() }': Singleton()(Reference('p.S'))(Field('v', true), Method('m')()()),
+    'object inherits p.S(a,b) { var v; method m() }': Singleton()(Reference('p.S'), [Reference('a'), Reference('b')])(Field('v', true), Method('m')()()),
+    'object inherits p.S mixed with p.M { var v; method m() }': Singleton()(Reference('p.S'), [], Reference('p.M'))(Field('v', true), Method('m')()()),
+    'object inherits p.S mixed with p.M and p.N { var v; method m() }': Singleton()(Reference('p.S'), [], Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
+    'object mixed with p.M and p.N { var v; method m() }': Singleton()(Reference('Object'), [], Reference('p.M'), Reference('p.N'))(Field('v', true), Method('m')()()),
     'object { constructor() }': FAIL,
     'object inherits p.S mixed with p.M': FAIL,
     'object inherits p.S mixed with {}': FAIL,

@@ -1,6 +1,6 @@
 import { propertyValues } from './utils/object'
 
-const { assign, keys } = Object   
+const { assign, keys } = Object
 
 //===============================================================================================================================
 // BEHAVIOUR
@@ -30,12 +30,12 @@ const nodeBehaviour = {
   }
 }
 
-export const traverse = configuration => assign(model => {
-  if (!model.type) throw new TypeError(`Can't traverse ${model} because it's not a node`)
-  const applicableTxs = keys(configuration).filter(key => model.is(key))
-  if (applicableTxs.length < 1) throw new TypeError(`No matching traverse strategy for ${model.type} node`)
-  return configuration[applicableTxs[0]](model)
-}, configuration)
+export const match = cases => assign(model => {
+  if (!model.type) throw new TypeError(`Can't match ${model} because it's not a node`) //TODO: !model.is(Node)
+  const applicableCase = keys(cases).filter(key => model.is(key))
+  if (applicableCase.length < 1) throw new TypeError(`No matching match case for ${model.type} node`)
+  return cases[applicableCase[0]](model)
+}, cases)
 
 export const node = builder => body => ({ type: builder instanceof Function ? builder.name : builder, ...body, ...nodeBehaviour })
 
@@ -51,13 +51,11 @@ export const Block = (...sentences) => node(Block)({ sentences })
 // TOP LEVEL
 //-------------------------------------------------------------------------------------------------------------------------------
 
-// TODO: Remove: Replace with metadata in Package
-export const Import = (target) => node(Import)({ target })
-export const Package = (name) => (...elements) => node(Package)({ name, elements })
+export const Package = (name, ...imports) => (...elements) => node(Package)({ name, imports, elements })
 
-export const Class = (name) => (superclass = name === 'Object' ? undefined : 'Object', ...mixins) => (...members) => node(Class)({ name, superclass, mixins, members })
+export const Class = (name) => (superclass = name === 'Object' ? undefined : Reference('Object'), ...mixins) => (...members) => node(Class)({ name, superclass, mixins, members })
 export const Mixin = (name) => (...members) => node(Mixin)({ name, members })
-export const Singleton = (name = undefined) => (superclass = 'Object', superArguments = [], ...mixins) => (...members) => node(Singleton)({ name, superclass, superArguments, mixins, members })
+export const Singleton = (name = undefined) => (superclass = Reference('Object'), superArguments = [], ...mixins) => (...members) => node(Singleton)({ name, superclass, superArguments, mixins, members })
 
 export const Program = (name) => (...sentences) => node(Program)({ name, sentences: Block(...sentences) })
 export const Test = (description) => (...sentences) => node(Program)({ description, sentences: Block(...sentences) })
@@ -66,7 +64,7 @@ export const Test = (description) => (...sentences) => node(Program)({ descripti
 // MEMBERS
 //-------------------------------------------------------------------------------------------------------------------------------
 
-export const Field = (variable, writeable = true, value = Literal(null)) => node(Field)({ variable, writeable, value })
+export const Field = (name, writeable = true, value = Literal(null)) => node(Field)({ name, writeable, value })
 export const Method = (name, override = false, native = false) => (...parameters) => (...sentences) => node(Method)({ name, override, native, parameters, sentences: Block(...sentences) })
 export const Constructor = (...parameters) => (baseArguments = [], lookUpCall = true) => (...sentences) => node(Constructor)({ parameters, sentences: Block(...sentences), lookUpCall, baseArguments })
 
@@ -75,7 +73,7 @@ export const Constructor = (...parameters) => (baseArguments = [], lookUpCall = 
 //-------------------------------------------------------------------------------------------------------------------------------
 
 // TODO: Rename to Variable?
-export const VariableDeclaration = (variable, writeable = true, value = Literal(null)) => node(VariableDeclaration)({ variable, writeable, value })
+export const VariableDeclaration = (name, writeable = true, value = Literal(null)) => node(VariableDeclaration)({ name, writeable, value })
 export const Return = (result) => node(Return)({ result })
 export const Assignment = (variable, value) => node(Assignment)({ variable, value })
 
@@ -105,7 +103,7 @@ export const Catch = (variable, errorType) => (...handler) => node(Catch)({ vari
 
 export const Module = [Class, Mixin, Singleton]
 export const Runnable = [Program, Test]
-export const TopLevel = [Import, Package, ...Module, ...Runnable]
+export const TopLevel = [Package, ...Module, ...Runnable]
 export const Member = [Field, Method, Constructor]
 export const Sentence = [VariableDeclaration, Return, Assignment]
 export const Expression = [Reference, Literal, List, Closure, Send, Super, New, If, Throw, Try]

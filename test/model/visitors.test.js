@@ -6,7 +6,7 @@ describe('visitor', () => {
 
   describe('visit', () => {
 
-    it('traverse nodes in depth-first', () => {
+    it('match nodes in depth-first', () => {
       const node = Node('A')({
         b: Node('B')({
           b1: Node('B1')(),

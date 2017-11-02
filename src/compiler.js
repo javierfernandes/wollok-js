@@ -1,8 +1,7 @@
-import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Send, Singleton, Super, Throw, Try, VariableDeclaration, traverse } from './model'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Send, Singleton, Super, Throw, Try, VariableDeclaration, match } from './model'
 
-import { Link } from './linker/steps/link'
+import { Link } from './linker'
 import { addDefaultConstructor } from './transformations'
-import { resolvePath } from './linker/scoping'
 
 const escape = str => ([
   'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
@@ -22,7 +21,7 @@ const compileWithNatives = (natives = {}) => {
     return implementation$(...arguments)
   }).bind(this)`
 
-  const compile = traverse({
+  const compile = match({
     // TODO: PACKAGE: ({ name, elements }) => {},
 
     [Singleton]: ({ name, superclass: superclassName, mixins, superArguments, members }) => {
@@ -66,7 +65,7 @@ const compileWithNatives = (natives = {}) => {
       (function (${parameters.map(compile).join()}){${compile(sentences)}}).call($instance,...arguments)
     }`,
 
-    [Field]: ({ variable, value }) => `${compile(variable)}=${compile(value)}`,
+    [Field]: ({ name, value }) => `${name}=${compile(value)}`,
 
     [Method]: ({ name, parameters, sentences, native, parent }) => {
       if (native && !(natives[parent.name] && natives[parent.name][name])) throw new TypeError(`Missing native implementation for ${parent.name}.${name}(...)`)
@@ -78,17 +77,18 @@ const compileWithNatives = (natives = {}) => {
         }`
     },
 
-    [VariableDeclaration]: ({ variable, writeable, value }) => `${writeable ? 'let' : 'const'} ${compile(variable)} = ${compile(value)}`,
+    [VariableDeclaration]: ({ name, writeable, value }) => `${writeable ? 'let' : 'const'} ${name} = ${compile(value)}`,
 
     [Assignment]: ({ variable, value }) => `${compile(variable)} = ${compile(value)}`,
 
     [Reference]: ({ name }) => {
+      //TODO: UPDATE THIS CODE TO THE NEW LINKER
       // unresolved
       if (name.type !== Link.name) return escape(name)
       // resolved
       const { token, path } = name
       if (token === 'self') { return 'this' }
-      const resolved = resolvePath(name, path)
+      const resolved = null//resolvePath(name, path)
       return (`${resolved.type === 'Field' ? 'this.' : ''}${escape(token)}`)
     },
 
@@ -182,7 +182,7 @@ const compileWithNatives = (natives = {}) => {
       return compiled.join(';\n')
     },
 
-    // TODO: Imports
+    // TODO: Handle Imports?
     // TODO: tests
 
     [Program]: ({ name, sentences }) => `function ${escape(name)}(){${compile(sentences)}}`,

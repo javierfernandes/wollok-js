@@ -1,6 +1,7 @@
-import { toVisitor } from './commons'
 import { identity, isFunction } from '../utils/functions'
+
 import { propertyValues } from '../utils/object'
+import { toVisitor } from './commons'
 
 // winston.level = 'silly'
 
@@ -11,14 +12,14 @@ const ignoredKeys = ['parent', 'path', 'scope']
 /**
  * Visits a Node and all of its inner nodes (objects with "type" property)
  * applying the provided Visitor.
- * 
+ *
  * @param {*} node Node to start visiting
  * @param {*} Visitor ({ enter(node, parent), exit(node, parent) })
  * @param {*} parent (not be send from outside, just for recursion)
  */
 export const visit = fnOrVisitor => visitWithVisitor(toVisitor(fnOrVisitor))
 
-// type Context { 
+// type Context {
 //   parent, feature, index
 // }
 
@@ -29,8 +30,7 @@ const visitWithVisitor = ({ enter = identity, exit = identity }, context = {}) =
   return exit(folded, context) || folded
 }
 
-const visitProperties = (context, node, enter, exit) => propertyValues(node).reduce(
-  (copy, { name, value }) => visitProperty(context, copy, name, value, enter, exit), node)
+const visitProperties = (context, node, enter, exit) => propertyValues(node).reduce((copy, { name, value }) => visitProperty(context, copy, name, value, enter, exit), node)
 
 const visitProperty = (context, node, name, value, enter, exit) => ({
   ...node,
@@ -50,8 +50,7 @@ const newPropertyValue = (context, node, name, value, enter, exit) => {
   const createChildContext = isArray ? (index => ({ ...childContext, index })) : () => childContext
 
   const mapped = list.map((e, i) =>
-    (e.type ? visitWithVisitor({ enter, exit }, createChildContext(i))(e) : e)
-  )
+    (e.type ? visitWithVisitor({ enter, exit }, createChildContext(i))(e) : e))
   return isArray ? mapped : mapped[0]
 }
 

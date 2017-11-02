@@ -17,7 +17,7 @@ import { describe, it } from 'mocha'
 import { interpreter, linker, parser } from '../src/index'
 
 import also from 'chai-also'
-import langNatives from '../dist/wre/lang.natives'
+import langNatives from '../src/wre/lang.natives'
 import { readFileSync } from 'fs'
 
 chai.use(also)
@@ -85,15 +85,11 @@ describe.skip('Wollok interpreter', () => {
     describe('closures', () => {
 
       it('should interpret closures without parameters', () => {
-        expectInterpretationOf(
-          Send(Closure()(Literal(5)), 'apply')()
-        ).to.have.property('$inner', 5)
+        expectInterpretationOf(Send(Closure()(Literal(5)), 'apply')()).to.have.property('$inner', 5)
       })
 
       it('should interpret closures with parameters', () => {
-        expectInterpretationOf(
-          Send(Closure(Parameter('p'))(Reference('p')), 'apply')(Literal(5))
-        ).to.have.property('$inner', 5)
+        expectInterpretationOf(Send(Closure(Parameter('p'))(Reference('p')), 'apply')(Literal(5))).to.have.property('$inner', 5)
       })
 
     })
@@ -122,9 +118,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret non-failing tries with catches and no always clauses to be the try body result, ignoring catches', () => {
         expectInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'))(Assignment(Reference('x'), Literal(1)))
-          )(),
+          Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(),
           Reference('x')
         ).to.have.property('$inner', 7)
       })
@@ -132,9 +126,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret non-failing tries with catches and always clauses to be the always body result after executing the try body, ignoring catches', () => {
         expectInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'))(Assignment(Reference('x'), Literal(1)))
-          )(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+          Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
           Reference('x')
         ).to.have.property('$inner', 8)
       })
@@ -142,8 +134,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret non-failing tries with no catches and always clauses to be the always body result after executing the try body', () => {
         expectInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))(
-          )(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+          Try(Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
           Reference('x')
         ).to.have.property('$inner', 8)
       })
@@ -151,9 +142,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret failing tries with matching catch and no always clauses to be the catch result, ignoring try body after error', () => {
         expectInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1))))
-          )(),
+          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))))(),
           Reference('x')
         ).to.have.property('$inner', 1)
       })
@@ -161,9 +150,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret failing tries with matching catch and always clauses to be the catch result, ignoring try body after error but after executing the always', () => {
         expectInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '*')(Literal(2))))
-          )(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '*')(Literal(2)))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
           Reference('x')
         ).to.have.property('$inner', 2)
       })
@@ -171,8 +158,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret failing tries with no catches and always clauses to propagate the error, ignoring try body after error but after executing the always', () => {
         expectErrorOnInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
-          )(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
           Reference('x')
         ).to.be()
       })
@@ -180,9 +166,7 @@ describe.skip('Wollok interpreter', () => {
       it('should interpret failing tries with no matching catches to propagate the error, ignoring try body after error', () => {
         expectErrorOnInterpretationOf(
           VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5)))
-          )(),
+          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5))))(),
           Reference('x')
         ).to.be()
       })
