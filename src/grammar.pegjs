@@ -28,6 +28,7 @@
     Program,
     Return,
     Super,
+    Self,
     SuperType,
     Test,
     Throw,
@@ -83,7 +84,7 @@ libraryElement = element: (package / class / namedObject / mixin) _ { return ele
 
 package = 'package' __ name:id _ '{' _ elements:libraryElement* _ '}' { return Package(name)(...elements) }
 
-class = 'class' __ name:id superclass:(_ 'inherits' __ qualifiedName)? mixins:mixinInclusion _ '{' _ members:(memberDeclaration/constructor)* _ '}' { return Class(name)(superclass ? superclass[3] : undefined,...mixins)(...members) }
+class = 'class' __ name:id superclass:(_ 'inherits' __ qualifiedName)? mixins:mixinInclusion _ '{' _ members:(constructor/memberDeclaration)* _ '}' { return Class(name)(superclass ? superclass[3] : undefined,...mixins)(...members) }
 
 mixin = 'mixin' __ name:id _ '{' _ members:memberDeclaration* _ '}' { return Mixin(name)(...members) }
 
@@ -166,6 +167,7 @@ primaryExpression = literal
                   / ifExpression
                   / tryExpression
                   / throwExpression
+                  / self
                   / reference
                   / '(' _ exp:expression _ ')' { return exp }
 
@@ -180,6 +182,7 @@ superInvocation = 'super' _ args:arguments { return Super(...args) }
 
 constructorCall = 'new' __ target:qualifiedName _ args:arguments { return New(target)(...args) }
 
+self = 'self' { return Self() }
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // LITERALS

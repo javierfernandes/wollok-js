@@ -60,7 +60,6 @@
     "no-shadow": 0,
     "camelcase": "warn",
     "no-param-reassign": 0,
-    "no-confusing-arrow": "warn",
     "radix": 0,
     "brace-style": "warn",
     "curly": "warn",
@@ -73,6 +72,7 @@
     "spaced-comment": "off",
     "no-with": "off",
     "object-curly-newline":"off",
-    "function-paren-newline": "off"
+    "function-paren-newline": "off",
+    "no-confusing-arrow": "off"
   }
 }

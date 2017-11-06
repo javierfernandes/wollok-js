@@ -1,17 +1,12 @@
-import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Send, Singleton, Super, Throw, Try, VariableDeclaration, match } from './model'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Self, Send, Singleton, Super, Throw, Try, VariableDeclaration, match } from './model'
 
 import { Link } from './linker'
 import { addDefaultConstructor } from './transformations'
 
-const escape = str => ([
-  'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
-  'delete', 'do', 'double', 'else', 'enum', 'eval', 'export', 'extends', 'false', 'final', 'finally', 'float', 'for', 'function', 'goto', 'if',
-  'implements', 'import', 'in', 'instanceof', 'int', 'interface', 'let', 'long', 'native', 'new', 'null', 'package', 'private', 'protected',
-  'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'true', 'try', 'typeof',
-  'var', 'void', 'volatile', 'while', 'with', 'yield', 'Object', 'Boolean', 'String', 'Set'
-].indexOf(str) >= 0 ? `$${str}` : str)
+// TODO: Txs like addDefaultConstructor should not be done here
+export default (environment, natives) => compileWithNatives(addDefaultConstructor(environment), natives)
 
-const compileWithNatives = (natives = {}) => {
+const compileWithNatives = (environment, natives) => {
 
   const compileMethodDispatcher = members => ({ name }) =>
     `this['${escape(name)}'] = (function(){
@@ -22,17 +17,38 @@ const compileWithNatives = (natives = {}) => {
   }).bind(this)`
 
   const compile = match({
-    // TODO: PACKAGE: ({ name, elements }) => {},
+
+    [Package]: ({ path, elements }) => `
+      ${path.isRoot() ? 'const $environment = ' : ''} {
+      ${elements.map(element => `
+        get ${escape(element.name)}() { delete this.${escape(element.name)}; return this.${escape(element.name)} = (${compile(element)})}
+      `).join(',')}
+      }`,
+
+    [Class]: ({ name, superclass, mixins, members }) => {
+      const superclassQualifiedName = `$environment${superclass.target.qualifiedName(environment)}`
+      return `
+        class ${escape(name)} extends ${name === 'Object' ? 'Object' : `${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclassQualifiedName))}`} {
+          constructor() {
+            let $instance = undefined
+            ${members.filter(m => m.type === 'Constructor').map(compile).join('\n')}
+            (function(){${members.filter(m => m.type === 'Field').map(compile).join(';\n')}}).call($instance)
+            ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
+            return $instance
+          }
+        }
+      `
+    },
 
     [Singleton]: ({ name, superclass: superclassName, mixins, superArguments, members }) => {
       const superclass = superclassName.type === Link.name ? superclassName.token : superclassName
       return `const ${escape(name)} = new class extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclass))} {
-      constructor(){
-        super(${superArguments.map(compile).join()})
-        ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
-        ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
-      }
-    }`
+        constructor(){
+          super(${superArguments.map(compile).join()})
+          ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
+          ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
+        }
+      }`
     },
 
     [Mixin]: ({ name, members }) =>
@@ -45,19 +61,6 @@ const compileWithNatives = (natives = {}) => {
         return $instance
       }
     }`,
-
-    [Class]: ({ name, superclass: superclassName, mixins, members }) => {
-      const superclass = superclassName && superclassName.type === Link.name ? superclassName.token : superclassName
-      return `class ${escape(name)} extends ${name === 'Object' ? 'Object' : `${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclass))}`} {
-      constructor() {
-        let $instance = undefined
-        ${members.filter(m => m.type === 'Constructor').map(compile).join('\n')}
-        (function(){${members.filter(m => m.type === 'Field').map(compile).join(';\n')}}).call($instance)
-        ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
-        return $instance
-      }
-    }`
-    },
 
     [Constructor]: ({ parameters, parent, baseArguments, lookUpCall, sentences }) => `
     if(arguments.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? '+ 1 >=' : '==='} ${parameters.length}) {
@@ -81,13 +84,14 @@ const compileWithNatives = (natives = {}) => {
 
     [Assignment]: ({ variable, value }) => `${compile(variable)} = ${compile(value)}`,
 
+    [Self]: () => 'this',
+
     [Reference]: ({ name }) => {
       //TODO: UPDATE THIS CODE TO THE NEW LINKER
       // unresolved
       if (name.type !== Link.name) return escape(name)
       // resolved
       const { token } = name
-      if (token === 'self') { return 'this' }
       const resolved = null//resolvePath(name, path)
       return (`${resolved.type === 'Field' ? 'this.' : ''}${escape(token)}`)
     },
@@ -156,33 +160,6 @@ const compileWithNatives = (natives = {}) => {
       return c
     })()`,
 
-    [Package]: ({ elements }) => {
-      const hoist = (unhoisted, hoisted = []) => {
-        if (!unhoisted.length) return hoisted
-
-        const [next, ...others] = unhoisted
-
-        const hoistedParentIndex = hoisted.findIndex(e => next.superclass === e.name)
-        if (hoistedParentIndex >= 0) {
-          const [parent, ...otherHoisted] = hoisted.splice(hoistedParentIndex)
-          return hoist(others, [...hoisted, parent, next, ...otherHoisted])
-        }
-
-        const unhoistedParentIndex = others.findIndex(e => next.superclass === e.name)
-        if (unhoistedParentIndex >= 0) {
-          const [parent, ...otherUnhoisted] = others.splice(unhoistedParentIndex)
-          return hoist([parent, next, ...others, ...otherUnhoisted], hoisted)
-        }
-
-        return hoist(others, [...hoisted, next])
-      }
-
-      const compiled = hoist(elements).map(compile)
-      // console.log('WCOMPILED:', compiled)
-      return compiled.join(';\n')
-    },
-
-    // TODO: Handle Imports?
     // TODO: tests
 
     [Program]: ({ name, sentences }) => `function ${escape(name)}(){${compile(sentences)}}`,
@@ -196,9 +173,35 @@ const compileWithNatives = (natives = {}) => {
     },
 
     [Parameter]: ({ name, varArg }) => (varArg ? `...${escape(name)}` : escape(name))
-  })
+  });
 
-  return compile
+  return `${compile(environment)};$environment`
 }
 
-export default (model, natives) => compileWithNatives(natives)(addDefaultConstructor(model))
+const escape = str => ([
+  'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
+  'delete', 'do', 'double', 'else', 'enum', 'eval', 'export', 'extends', 'false', 'final', 'finally', 'float', 'for', 'function', 'goto', 'if',
+  'implements', 'import', 'in', 'instanceof', 'int', 'interface', 'let', 'long', 'native', 'new', 'null', 'package', 'private', 'protected',
+  'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'true', 'try', 'typeof',
+  'var', 'void', 'volatile', 'while', 'with', 'yield', 'Object', 'Boolean', 'String', 'Set'
+].indexOf(str) >= 0 ? `$${str}` : str)
+
+const hoist = (unhoisted, hoisted = []) => {
+  if (!unhoisted.length) return hoisted
+
+  const [next, ...others] = unhoisted
+
+  const hoistedParentIndex = hoisted.findIndex(e => next.superclass === e.name)
+  if (hoistedParentIndex >= 0) {
+    const [parent, ...otherHoisted] = hoisted.splice(hoistedParentIndex)
+    return hoist(others, [...hoisted, parent, next, ...otherHoisted])
+  }
+
+  const unhoistedParentIndex = others.findIndex(e => next.superclass === e.name)
+  if (unhoistedParentIndex >= 0) {
+    const [parent, ...otherUnhoisted] = others.splice(unhoistedParentIndex)
+    return hoist([parent, next, ...others, ...otherUnhoisted], hoisted)
+  }
+
+  return hoist(others, [...hoisted, next])
+}

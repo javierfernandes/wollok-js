@@ -13,11 +13,17 @@ try {
   const grammar = 'grammar.js'
   parser = require(`./${grammar}`)
 }
+// TODO: How about, instead of receiving the grammar rule name we take parse[Expression] or something? Like we do with other match based functions
+const parse = (...args) => {
+  try { return parser.parse(...args) } catch ({ location: { start, end }, message }) {
+    throw new SyntaxError(`[${start.line}:${start.column} - ${end.line}:${end.column}]: ${message}`, undefined, start.line)
+  }
+}
 
-export default parser.parse
+export default parse
 
 export const parseFile = (fileContent, fileName = '') => {
-  const packageNode = parser.parse
+  const packageNode = parse(fileContent)
   packageNode.name = fileName
   return packageNode
 }

@@ -6,16 +6,18 @@ const { assign, keys } = Object
 // - Clean re-organize model / transformations
 // - Implement validations
 // - Refactor code using JS-Extensions
+//    - .length              => Array.isEmpty()
+//    - slice(-1)[0]         => Array.last()
+//    - filter(x => x !== y) => Array.remove()
 
 //===============================================================================================================================
 // BEHAVIOUR
 //===============================================================================================================================
 
-export const typeComplies = (type, typeOrCategory) => typeOrCategory.toString().split(',').some(t => type === t)
-
+//TODO: Perhaps these are not necesarily methods on node. Perhaps we could move them out, as independent functions
 const nodeBehaviour = {
   is(typeOrCategory) {
-    return typeComplies(this.type, typeOrCategory)
+    return typeOrCategory.toString().split(',').some(t => this.type === t)
   },
 
   copy(diff) {
@@ -24,10 +26,6 @@ const nodeBehaviour = {
       clone[key] = diff[key] instanceof Function ? diff[key](clone[key]) : diff[key]
     }
     return clone
-  },
-
-  root() {
-    return !this.parent ? this : this.parent.root()
   }
 }
 
@@ -55,9 +53,9 @@ export const Block = (...sentences) => node(Block)({ sentences })
 
 export const Package = (name, ...imports) => (...elements) => node(Package)({ name, imports, elements })
 
-export const Class = (name) => (superclass = name === 'Object' ? undefined : Reference('Object'), ...mixins) => (...members) => node(Class)({ name, superclass, mixins, members })
+export const Class = (name) => (superclass = name === 'Object' ? undefined : Reference('wollok.Object'), ...mixins) => (...members) => node(Class)({ name, superclass, mixins, members })
 export const Mixin = (name) => (...members) => node(Mixin)({ name, members })
-export const Singleton = (name = undefined) => (superclass = Reference('Object'), superArguments = [], ...mixins) => (...members) => node(Singleton)({ name, superclass, superArguments, mixins, members })
+export const Singleton = (name = undefined) => (superclass = Reference('wollok.Object'), superArguments = [], ...mixins) => (...members) => node(Singleton)({ name, superclass, superArguments, mixins, members })
 
 export const Program = (name) => (...sentences) => node(Program)({ name, sentences: Block(...sentences) })
 export const Test = (description) => (...sentences) => node(Program)({ description, sentences: Block(...sentences) })
@@ -83,6 +81,7 @@ export const Assignment = (variable, value) => node(Assignment)({ variable, valu
 // EXPRESSIONS
 //-------------------------------------------------------------------------------------------------------------------------------
 
+export const Self = () => node(Self)({ })
 export const Reference = (name) => node(Reference)({ name })
 export const Literal = (value) => node(Literal)({ value })
 // TODO: Remove: Replace with New to WRE's List
@@ -108,7 +107,7 @@ export const Runnable = [Program, Test]
 export const TopLevel = [Package, ...Module, ...Runnable]
 export const Member = [Field, Method, Constructor]
 export const Sentence = [VariableDeclaration, Return, Assignment]
-export const Expression = [Reference, Literal, List, Closure, Send, Super, New, If, Throw, Try]
+export const Expression = [Reference, Self, Literal, List, Closure, Send, Super, New, If, Throw, Try]
 export const Node = [...TopLevel, ...Member, ...Sentence, ...Expression, Catch, Parameter, Block]
 
 Node.forEach(builder => { builder.toString = () => builder.name })

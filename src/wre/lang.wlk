@@ -1733,3 +1733,30 @@ class Date {
 	}
 
 }
+
+////////////////////////////////////
+// TOOK FROM WOLLOK.LIB
+////////////////////////////////////
+
+
+/** 
+ * Console is a global wollok object that implements a character-based console device
+ * called "standard input/output" stream 
+ */
+object console {
+
+	/** Prints a String with end-of-line character */
+	method println(obj) native
+	
+	/** Reads a line from input stream */
+	method readLine() native
+	
+	/** Reads an int character from input stream */
+	method readInt() native
+	
+	/** Returns the system's representation of a new line:
+	 * - \n in Unix systems
+	 * - \r\n in Windows systems
+	 */
+	method newline() native
+}

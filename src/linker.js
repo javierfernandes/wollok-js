@@ -1,4 +1,4 @@
-import { Assignment, Block, Catch, Closure, Constructor, Field, If, List, Method, Module, New, Node, Package, Reference, Return, Runnable, Send, Super, Try, VariableDeclaration, match } from './model'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Method, Mixin, Module, New, Node, Package, Reference, Return, Runnable, Send, Singleton, Super, Try, VariableDeclaration, match } from './model'
 
 import { flatMap } from './transformations'
 
@@ -9,10 +9,13 @@ const { isNaN } = Number
 //===============================================================================================================================
 
 export const Path = (...steps) => new Proxy(root => steps.reduce((prev, step) => prev[step], root), {
-  get: function(target, property) {
+  get: function(target, property, self) {
     if (property === 'parent') return () => (steps.length ? Path(...(isNaN(Number(steps.slice(-1)[0])) ? steps.slice(0, -1) : steps.slice(0, -2))) : undefined)
     if (property === 'isRoot') return () => steps.length === 0
     if (property === 'toString') return () => ['~', ...steps].join('/')
+    if (property === 'qualifiedName') {
+      return environment => self.isRoot() ? '' : `${self.parent().isRoot() ? '' : `${self.parent().qualifiedName(environment)}.`}${self(environment).name}`
+    }
     return Path(...steps, property)
   }
 })
@@ -21,6 +24,7 @@ export const Path = (...steps) => new Proxy(root => steps.reduce((prev, step) =>
 // LINKER
 //===============================================================================================================================
 
+//TODO: Overload to receive a current-environment for incremental building.
 export default (...packages) => {
   const environment = packages.reduce(mergeInto, Package('')())
 
@@ -65,7 +69,9 @@ const linkPath = (pathToNode = Path()) => {
   return match({
     [Package]: node => node.copy({ path, imports: linkAllPaths(_ => _.elements)(node), elements: linkAllPaths(_ => _.elements)(node) }),
     [Block]: node => node.copy({ path, sentences: linkAllPaths(_ => _.sentences)(node) }),
-    [Module]: node => node.copy({ path, members: linkAllPaths(_ => _.members)(node) }),
+    [Class]: node => node.copy({ path, members: linkAllPaths(_ => _.members)(node), superclass: n => n && linkPath(pathToNode.superclass)(n), mixins: linkAllPaths(_ => _.mixins)(node) }),
+    [Mixin]: node => node.copy({ path, members: linkAllPaths(_ => _.members)(node) }),
+    [Singleton]: node => node.copy({ path, members: linkAllPaths(_ => _.members)(node), superclass: linkPath(pathToNode.superclass), mixins: linkAllPaths(_ => _.mixins)(node), superArguments: linkAllPaths(_ => _.superArguments)(node) }),
     [Runnable]: node => node.copy({ path, sentences: linkPath(pathToNode.sentences) }),
     [Field]: node => node.copy({ path, value: linkPath(pathToNode.value) }),
     [Method]: node => node.copy({ path, parameters: linkAllPaths(_ => _.parameters)(node), sentences: linkPath(pathToNode.sentences) }),
@@ -100,9 +106,16 @@ const linkScope = environment => {
 
   const scopeWithin = environment => path => {
     const scopeContributions = match({
-      [Package]: addToScope(_ => [..._.elements, ..._.imports.reduce((a, i) => [...a, ...importedItems(environment)(i)])]),
+      [Package]: node => {
+        const wre = environment.elements.find(_ => _.name === 'wollok')
+        return addToScope(_ => [
+          ...wre ? wre.elements : [],
+          ..._.elements,
+          ..._.imports.reduce((a, i) => [...a, ...importedItems(environment)(i)])
+        ])(node)
+      },
       [Module]: addToScope(_ => _.members.filter(m => m.is(Field))),
-      [[Method, Closure]]: addToScope(_ => _.parameters),
+      [[Constructor, Method, Closure]]: addToScope(_ => _.parameters),
       [Block]: addToScope(_ => _.sentences.filter(s => s.is(VariableDeclaration))),
       [Node]: () => {}
     })(path(environment))
@@ -121,8 +134,16 @@ const linkScope = environment => {
 // REFERENCE LINKING
 //-------------------------------------------------------------------------------------------------------------------------------
 
-const linkReferences = flatMap({
-  //TODO: This should be done recursively over each section of the name separated by '.'
-  [Reference]: node => node.copy({ target: () => node.scope[node.name] }),
+const linkReferences = environment => flatMap({
+  //TODO: Fail if the target is not defined?
+  [Reference]: node => node.copy({
+    target: () => {
+      const steps = node.name.split('.')
+      //TODO: Add QualifiedName node to avoid the if?
+      return steps.length > 1
+        ? steps.reduce((target, name) => target(environment).elements.find(_ => _.name === name).path, Path())
+        : node.scope[node.name]
+    }
+  }),
   [Node]: node => node
-})
+})(environment)

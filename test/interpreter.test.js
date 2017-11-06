@@ -1,28 +1,78 @@
 import {
   Assignment,
   Catch,
+  Class,
   Closure,
   List,
   Literal,
+  Mixin,
   New,
+  Package,
   Parameter,
   Reference,
   Send,
+  Singleton,
   Throw,
   Try,
   VariableDeclaration
 } from '../src/model'
 import chai, { expect } from 'chai'
 import { describe, it } from 'mocha'
+import parse, { parseFile } from '../src/parser'
 
 import also from 'chai-also'
-import interpreter from '../src/interpreter'
+import interpret from '../src/interpreter'
 import langNatives from '../src/wre/lang.natives'
-import linker from '../src/linker'
-import parser from '../src/parser'
+import link from '../src/linker'
 import { readFileSync } from 'fs'
 
 chai.use(also)
+
+const wre = parseFile(readFileSync('src/wre/lang.wlk', 'utf8'), 'wollok')
+
+describe('Wollok interpreter', () => {
+
+  describe('Packages', () => {
+
+    it('should interpret packages as nested fields in a hash', () => {
+      const jsEnvironment = interpret()(link(
+        Package('a')(
+          Package('c')()
+        ),
+        Package('b')(
+          Package('d')()
+        )
+      ))
+
+      expect(jsEnvironment)
+        .to.have.property('a')
+        .and.also.to.have.nested.property('a.c')
+        .and.also.to.have.property('b')
+        .and.also.to.have.nested.property('b.d')
+    })
+
+  })
+
+  describe('Classes', () => {
+    it('should interpret classes as js classes', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()()
+        )
+      )
+
+      const jsEnvironment = interpret()(e)
+
+      expect(jsEnvironment)
+        .to.have.nested.property('p.C').that.is.a('function')
+    })
+  })
+
+  describe('Mixins', () => { })
+
+  describe('Objects', () => { })
+
+})
 
 // const interpret = (...asts) => interpreter(langNatives)(lang, ...asts)
 
@@ -30,14 +80,14 @@ describe.skip('Wollok interpreter', () => {
   let cachedLang;
 
   const lang = () => {
-    if (!cachedLang) cachedLang = linker(parser(readFileSync('src/wre/lang.wlk', 'utf8')))
+    if (!cachedLang) cachedLang = link(parse(readFileSync('src/wre/lang.wlk', 'utf8')))
     return cachedLang
   }
-  const expectInterpretationOf = (...asts) => expect(interpreter(langNatives)(lang(), ...asts))
+  const expectInterpretationOf = (...asts) => expect(interpret(langNatives)(lang(), ...asts))
   const expectErrorOnInterpretationOf = (...asts) => ({
     to: {
       be(errorType, errorDescription) {
-        expect(() => interpreter(langNatives)(lang(), ...asts)).to.throw(errorType, errorDescription)
+        expect(() => interpret(langNatives)(lang(), ...asts)).to.throw(errorType, errorDescription)
       }
     }
   })
@@ -210,25 +260,6 @@ describe.skip('Wollok interpreter', () => {
   })
 
 
-
-  //-------------------------------------------------------------------------------------------------------------------------------
-  // SENTENCES
-  //-------------------------------------------------------------------------------------------------------------------------------
-  // Not very useful tests, but at least serves to check it does not crash...
-
-
-  // [Send(ClosureNode()(VariableDeclaration(Reference('x'), true), Reference('x')), 'call')(), null],
-  // [Send(ClosureNode()(VariableDeclaration(Reference('x'), true, Literal(1)), Reference('x')), 'call')(), 1],
-  // [Send(ClosureNode()(VariableDeclaration(Reference('x'), false, Literal(1)), Reference('x')), 'call')(), 1],
-
-  // [Send(ClosureNode()(
-  //   VariableDeclaration(Reference('x'), true, Literal(1)),
-  //   Assignment(Reference('x'), Literal(2)),
-  //   Reference('x')
-  // ), 'call')(), 2],
-  // [Assignment(Reference('x'), Literal(1)), new ReferenceError('a is not defined')],
-
-
   //-------------------------------------------------------------------------------------------------------------------------------
   // EXPRESSIONS
   //-------------------------------------------------------------------------------------------------------------------------------
@@ -258,10 +289,5 @@ describe.skip('Wollok interpreter', () => {
   //-------------------------------------------------------------------------------------------------------------------------------
   // LIBRARY ELEMENTS
   //-------------------------------------------------------------------------------------------------------------------------------
-
-  // TODO: Test Classes
-  // TODO: Test Mixins
-  // TODO: Test Objects
-
 
 })

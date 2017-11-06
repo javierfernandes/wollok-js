@@ -1,9 +1,9 @@
-import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Method, Module, New, Node, Package, Return, Runnable, Send, Super, Try, VariableDeclaration, match } from './model'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Method, Mixin, Module, New, Node, Package, Return, Runnable, Send, Singleton, Super, Try, VariableDeclaration, match } from './model'
 
 export const addDefaultConstructor = match({
-  [Package]: ({ elements }) => Package(...elements.map(addDefaultConstructor)),
-  [Class]: (node) => (node.members.some(c => c.is(Constructor)) ? node : node.copy({ members: ms => [Constructor()()(), ...ms] })),
-  [Node]: (node) => node
+  [Package]: node => node.copy({ elements: elements => elements.map(addDefaultConstructor) }),
+  [Class]: node => node.members.some(c => c.is(Constructor)) ? node : node.copy({ members: ms => [Constructor()()(), ...ms] }),
+  [Node]: node => node
 })
 
 // TODO: Test this
@@ -11,7 +11,9 @@ export const addDefaultConstructor = match({
 export const flatMap = cases => match({
   [Block]: node => match(cases)(node).copy({ sentences: sentences => sentences.map(flatMap(cases)) }),
   [Package]: node => match(cases)(node).copy({ elements: elements => elements.map(flatMap(cases)) }),
-  [Module]: node => match(cases)(node).copy({ members: members => members.map(flatMap(cases)) }),
+  [Class]: node => match(cases)(node).copy({ members: members => members.map(flatMap(cases)), superclass: sc => sc && flatMap(cases)(sc), mixins: mixins => mixins.map(flatMap(cases)) }),
+  [Mixin]: node => match(cases)(node).copy({ members: members => members.map(flatMap(cases)) }),
+  [Singleton]: node => match(cases)(node).copy({ members: members => members.map(flatMap(cases)), superclass: flatMap(cases), mixins: mixins => mixins.map(flatMap(cases)), superArguments: superArguments => superArguments.map(flatMap(cases)) }),
   [Runnable]: node => match(cases)(node).copy({ sentences: flatMap(cases) }),
   [Field]: node => match(cases)(node).copy({ value: flatMap(cases) }),
   [Method]: node => match(cases)(node).copy({ parameters: parameters => parameters.map(flatMap(cases)), sentences: flatMap(cases) }),
