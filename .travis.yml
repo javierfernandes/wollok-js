@@ -4,11 +4,13 @@ node_js:
   - "7.10.0"
 
 script:
-  - npm install
-  - npm run compile
-  - npm run test
+  - yarn install
+  - yarn lint
+  - yarn test
+  # - npm run compile
+  # - npm run test
   # - npm run coverage-test
-  - npm run lint
+  # - npm run lint
 
 # after_success:
 #   - npm run coverage-report
