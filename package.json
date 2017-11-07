@@ -1,6 +1,6 @@
 {
   "name": "wollok-js",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "JS based Wollok engine",
   "license": "GPL-3.0",
   "repository": "uqbar-project/wollok-js",
