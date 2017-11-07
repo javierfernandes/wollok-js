@@ -100,6 +100,62 @@ describe('Wollok interpreter', () => {
       expect(instance).to.have.property('f')
       expect(instance.f.$inner).to.equal(7)
     })
+
+    it('should provide instances with their superclass methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Method('m')(Parameter('a'))(Reference('a'))
+          ),
+          Class('D')(Reference('C'))()
+        )
+      )
+
+      const { p: { D } } = interpret()(e)
+      const instance = new D()
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m(5)).to.equal(5)
+    })
+
+    it('should provide instances with their superclass fields', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Field('f', true, Literal(7))
+          ),
+          Class('D')(Reference('C'))()
+        )
+      )
+
+      const { p: { D } } = interpret()(e)
+      const instance = new D()
+
+      expect(instance).to.have.property('f')
+      expect(instance.f.$inner).to.equal(7)
+    })
+
+
+    it('should override methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Method('m')(Parameter('a'))(Reference('a')),
+            Method('m')()(Literal(5))
+          ),
+          Class('D')(Reference('C'))(
+            Method('m', true)()(Literal(7))
+          )
+        )
+      )
+
+      const { p: { D } } = interpret()(e)
+      const instance = new D()
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m().$inner).to.equal(7)
+      expect(instance.m(5)).to.equal(5)
+    })
   })
 
   // TODO

@@ -6,12 +6,13 @@ export default (environment, natives) => compileWithNatives(environment, natives
 const compileWithNatives = (environment, natives) => {
 
   const compileMethodDispatcher = members => ({ name }) =>
-    `this['${escape(name)}'] = (function(){
-    const implementation$ = (...args) => {
-      ${members.filter(({ name: n }) => n === name).map(compile).join(';\n')}
-    }
-    return implementation$(...arguments)
-  }).bind(this)`
+    `['${escape(name)}']() {
+      const implementation$ = (...args) => {
+        ${members.filter(({ name: n }) => n === name).map(compile).join(';\n')}
+        return super["${escape(name)}"](...args)
+      }
+      return implementation$(...arguments)
+    }`
 
   const compile = match({
 
@@ -30,9 +31,9 @@ const compileWithNatives = (environment, natives) => {
             let $instance = undefined
             ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
             ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
-            ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
             return $instance
           }
+          ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
         }
       `
     },
@@ -43,8 +44,8 @@ const compileWithNatives = (environment, natives) => {
         constructor(){
           $instance = super(${superArguments.map(compile).join()})
           ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
-          ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
         }
+        ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
       }`
     },
 
@@ -54,9 +55,9 @@ const compileWithNatives = (environment, natives) => {
         let $instance = undefined
         ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
         ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
-        ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
         return $instance
       }
+      ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
     }`,
 
     [Constructor]: ({ parameters, path, baseArguments, lookUpCall, sentences }) => `
