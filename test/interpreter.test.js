@@ -229,8 +229,104 @@ describe('Wollok interpreter', () => {
     })
   })
 
-  // TODO
-  describe('Objects', () => { })
+  describe('Singletons', () => {
+
+    it('should interpret singletons as js objects', () => {
+      const e = link(wre,
+        Package('p')(
+          Singleton('s')()()
+        )
+      )
+
+      const jsEnvironment = interpret()(e)
+
+      expect(jsEnvironment)
+        .to.have.nested.property('p.s').that.is.an('object')
+    })
+
+    it('should respond to their methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Singleton('s')()(
+            Method('m')(Parameter('a'))(Reference('a'))
+          )
+        )
+      )
+
+      const { p: { s: instance } } = interpret()(e)
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m(5)).to.equal(5)
+    })
+
+    it('should contain their fields', () => {
+      const e = link(wre,
+        Package('p')(
+          Singleton('s')()(
+            Field('f', true, Literal(7))
+          )
+        )
+      )
+
+      const { p: { s: instance } } = interpret()(e)
+
+      expect(instance).to.have.property('f')
+      expect(instance.f.$inner).to.equal(7)
+    })
+
+    it('should provide instances with their superclass methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Method('m')(Parameter('a'))(Reference('a'))
+          ),
+          Singleton('s')(Reference('C'))()
+        )
+      )
+
+      const { p: { s: instance } } = interpret()(e)
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m(5)).to.equal(5)
+    })
+
+    it('should provide instances with their superclass fields', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Field('f', true, Literal(7))
+          ),
+          Singleton('s')(Reference('C'))()
+        )
+      )
+
+      const { p: { s: instance } } = interpret()(e)
+
+      expect(instance).to.have.property('f')
+      expect(instance.f.$inner).to.equal(7)
+    })
+
+    it('should override methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Method('m')(Parameter('a'))(Reference('a')),
+            Method('m')()(Literal(5))
+          ),
+          Singleton('s')(Reference('C'))(
+            Method('m', true)()(Literal(7))
+          )
+        )
+      )
+
+      const { p: { s: instance } } = interpret()(e)
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m().$inner).to.equal(7)
+      expect(instance.m(5)).to.equal(5)
+    })
+
+  })
 
 })
 

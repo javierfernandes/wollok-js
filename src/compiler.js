@@ -42,7 +42,8 @@ const compileWithNatives = (environment, natives) => {
       const superclassQualifiedName = `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}`
       return `new class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `$environment.${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, escape(superclassQualifiedName))}) {
         constructor(){
-          $instance = super(${superArguments.map(compile).join()})
+          const $instance = super(${superArguments.map(compile).join()})
+          
           ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
         }
         ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
