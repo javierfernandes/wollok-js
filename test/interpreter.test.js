@@ -135,7 +135,6 @@ describe('Wollok interpreter', () => {
       expect(instance.f.$inner).to.equal(7)
     })
 
-
     it('should override methods', () => {
       const e = link(wre,
         Package('p')(
@@ -158,8 +157,77 @@ describe('Wollok interpreter', () => {
     })
   })
 
-  // TODO
-  describe('Mixins', () => { })
+  describe('Mixins', () => {
+
+    it('should interpret mixins as js functions', () => {
+      const e = link(wre,
+        Package('p')(
+          Mixin('M')()
+        )
+      )
+
+      const jsEnvironment = interpret()(e)
+
+      expect(jsEnvironment)
+        .to.have.nested.property('p.M').that.is.a('function')
+    })
+
+    it('should provide instances with their methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Mixin('M')(
+            Method('m')(Parameter('a'))(Reference('a'))
+          ),
+          Class('C')(undefined, Reference('M'))()
+        )
+      )
+      const { p: { C } } = interpret()(e)
+      const instance = new C()
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m(5)).to.equal(5)
+    })
+
+    it('should provide instances with their fields', () => {
+      const e = link(wre,
+        Package('p')(
+          Mixin('M')(
+            Field('f', true, Literal(7))
+          ),
+          Class('C')(undefined, Reference('M'))()
+        )
+      )
+
+
+      const { p: { C } } = interpret()(e)
+      const instance = new C()
+
+      expect(instance).to.have.property('f')
+      expect(instance.f.$inner).to.equal(7)
+    })
+
+    it('should override methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')(undefined, Reference('M'), Reference('N'))(),
+          Mixin('M')(
+            Method('m')(Parameter('a'))(Reference('a')),
+            Method('m')()(Literal(5))
+          ),
+          Mixin('N')(
+            Method('m', true)()(Literal(7))
+          )
+        )
+      )
+
+      const { p: { C } } = interpret()(e);
+      const instance = new C()
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m().$inner).to.equal(7)
+      expect(instance.m(5)).to.equal(5)
+    })
+  })
 
   // TODO
   describe('Objects', () => { })

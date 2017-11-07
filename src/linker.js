@@ -31,11 +31,13 @@ export default (...packages) => {
   const completedEnvironment = addDefaultConstructor(environment)
 
   //TODO: Manejar casos de error
-  return [
+  const response = [
     linkPath(),
     linkScope,
     linkReferences
   ].reduce((env, step) => step(env), completedEnvironment)
+
+  return response
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------

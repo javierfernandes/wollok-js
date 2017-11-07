@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "mocha --colors --require babel-register --reporter min test/**.test.js",
+    "test": "mocha --colors --require babel-register --timeout 5000 --reporter min test/**.test.js",
     "lint": "eslint src/**.js test/**.js",
     "coverage-test": "NODE_ENV=test nyc --require babel-core/register mocha --compilers js:babel-register --recursive tests",
     "coverage-report": "nyc report --reporter=lcov",

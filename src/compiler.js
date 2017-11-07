@@ -26,7 +26,7 @@ const compileWithNatives = (environment, natives) => {
     [Class]: ({ name, superclass, mixins, members }) => {
       const superclassQualifiedName = `${name !== 'Object' ? `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}` : 'Object'}`
       return `
-        class ${escape(name)} extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, superclassQualifiedName)} {
+        class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `$environment.${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, superclassQualifiedName)}) {
           constructor() {
             let $instance = undefined
             ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
@@ -40,7 +40,7 @@ const compileWithNatives = (environment, natives) => {
 
     [Singleton]: ({ name, superclass, mixins, superArguments, members }) => {
       const superclassQualifiedName = `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}`
-      return `new class ${escape(name)} extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclassQualifiedName))} {
+      return `new class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `$environment.${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, escape(superclassQualifiedName))}) {
         constructor(){
           $instance = super(${superArguments.map(compile).join()})
           ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
@@ -49,16 +49,17 @@ const compileWithNatives = (environment, natives) => {
       }`
     },
 
-    [Mixin]: ({ members }) =>
-      `($$superclass) => class extends $$superclass {
-      constructor() {
-        let $instance = undefined
-        ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
-        ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
-        return $instance
+    [Mixin]: ({ members }) => `
+      ($$superclass) => class extends $$superclass {
+        constructor() {
+          let $instance = super(...arguments)
+          ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
+          ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
+          return $instance
+        }
+        ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
       }
-      ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join('\n')}
-    }`,
+    `,
 
     [Constructor]: ({ parameters, path, baseArguments, lookUpCall, sentences }) => `
     if(arguments.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? '+ 1 >=' : '==='} ${parameters.length}) {
