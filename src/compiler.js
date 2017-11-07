@@ -24,9 +24,9 @@ const compileWithNatives = (environment, natives) => {
       }`,
 
     [Class]: ({ name, superclass, mixins, members }) => {
-      const superclassQualifiedName = `${name !== 'Object' ? `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}` : 'Object'}`
+      const superclassQualifiedName = `${name !== 'Object' ? `${escapeQualified(superclass.target.qualifiedName(environment))}` : 'Object'}`
       return `
-        class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `$environment.${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, superclassQualifiedName)}) {
+        class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, superclassQualifiedName)}) {
           constructor() {
             let $instance = undefined
             ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
@@ -39,8 +39,8 @@ const compileWithNatives = (environment, natives) => {
     },
 
     [Singleton]: ({ name, superclass, mixins, superArguments, members }) => {
-      const superclassQualifiedName = `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}`
-      return `new class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `$environment.${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, escape(superclassQualifiedName))}) {
+      const superclassQualifiedName = `${escapeQualified(superclass.target.qualifiedName(environment))}`
+      return `new class ${escape(name)} extends (${mixins.reduce((parent, mixin) => `${escapeQualified(mixin.target.qualifiedName(environment))}(${parent})`, escape(superclassQualifiedName))}) {
         constructor(){
           const $instance = super(${superArguments.map(compile).join()})
           
@@ -122,7 +122,7 @@ const compileWithNatives = (environment, natives) => {
     })()`,
 
     [Catch]: ({ variable, errorType, handler }) =>
-      `if (${errorType ? `$error instanceof ${errorType}` : 'true'} ) {
+      `if (${errorType ? `$error instanceof ${escapeQualified(errorType.target.qualifiedName(environment))}` : 'true'} ) {
       return ((${compile(variable)}) => {${compile(handler)}})($error)
     }`,
 
@@ -187,4 +187,4 @@ const escape = str => ([
 ].indexOf(str) >= 0 ? `$${str}` : str)
 
 // TODO: Perhaps the qualified name should be a separate node, so this can be just a separate pattern
-const escapeQualified = str => str.split('.').map(escape).join('.')
+const escapeQualified = str => `$environment.${str.split('.').map(escape).join('.')}`

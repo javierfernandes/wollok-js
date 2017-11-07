@@ -24,8 +24,8 @@ export const flatMap = cases => match({
   [New]: node => match(cases)(node).copy({ target: flatMap(cases), parameters: parameters => parameters.map(flatMap(cases)) }),
   [Throw]: node => match(cases)(node).copy({ exception: flatMap(cases) }),
   [If]: node => match(cases)(node).copy({ condition: flatMap(cases), thenSentences: flatMap(cases), elseSentences: flatMap(cases) }),
-  [Try]: node => match(cases)(node).copy({ sentences: flatMap(cases), catches: catches => catches.map(flatMap(cases)), always: always => always.map(flatMap(cases)) }),
-  [Catch]: node => match(cases)(node).copy({ variable: flatMap(cases), handler: flatMap(cases) }),
+  [Try]: node => match(cases)(node).copy({ sentences: flatMap(cases), catches: catches => catches.map(flatMap(cases)), always: flatMap(cases) }),
+  [Catch]: node => match(cases)(node).copy({ variable: flatMap(cases), errorType: t => t && flatMap(cases)(t), handler: flatMap(cases) }),
   [Node]: node => match(cases)(node)
 })
 

@@ -90,8 +90,8 @@ const linkPath = (pathToNode = Path()) => {
     [New]: node => node.copy({ path, target: linkPath(pathToNode.target), parameters: linkAllPaths(_ => _.parameters)(node) }),
     [Throw]: node => node.copy({ path, exception: linkPath(pathToNode.exception) }),
     [If]: node => node.copy({ path, condition: linkPath(pathToNode.condition), thenSentences: linkPath(pathToNode.thenSentences), elseSentences: linkPath(pathToNode.elseSentences) }),
-    [Try]: node => node.copy({ path, sentences: linkPath(pathToNode.sentences), catches: linkAllPaths(_ => _.catches)(node), always: linkAllPaths(_ => _.always)(node) }),
-    [Catch]: node => node.copy({ path, variable: linkPath(pathToNode.variable), handler: linkPath(pathToNode.handler) }),
+    [Try]: node => node.copy({ path, sentences: linkPath(pathToNode.sentences), catches: linkAllPaths(_ => _.catches)(node), always: linkPath(pathToNode.always) }),
+    [Catch]: node => node.copy({ path, variable: linkPath(pathToNode.variable), errorType: t => t && linkPath(pathToNode.errorType)(t), handler: linkPath(pathToNode.handler) }),
     [Node]: node => node.copy({ path })
   })
 }
@@ -122,6 +122,7 @@ const linkScope = environment => {
       [Module]: addToScope(_ => _.members.filter(m => m.is(Field))),
       [[Constructor, Method, Closure]]: addToScope(_ => _.parameters),
       [Block]: addToScope(_ => _.sentences.filter(s => s.is(VariableDeclaration))),
+      [Catch]: addToScope(_ => [_.variable]),
       [Node]: () => {}
     })(path(environment))
 
