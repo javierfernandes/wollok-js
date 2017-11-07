@@ -32,12 +32,13 @@ chai.use(also)
 
 const wre = parseFile(readFileSync('src/wre/lang.wlk', 'utf8'), 'wollok')
 
+//TODO: These tests were written in a hurry and should be refactored
 describe('Wollok interpreter', () => {
 
   describe('Packages', () => {
 
     it('should interpret packages as nested fields in a hash', () => {
-      const jsEnvironment = interpret()(link(
+      const jsEnvironment = interpret(langNatives)(link(
         Package('a')(
           Package('c')()
         ),
@@ -61,9 +62,8 @@ describe('Wollok interpreter', () => {
         Package('p')(
           Class('C')()()
         )
-      )
-
-      const jsEnvironment = interpret()(e)
+      );
+      const jsEnvironment = interpret(langNatives)(e)
 
       expect(jsEnvironment)
         .to.have.nested.property('p.C').that.is.a('function')
@@ -78,7 +78,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { C } } = interpret()(e)
+      const { p: { C } } = interpret(langNatives)(e)
       const instance = new C()
 
       expect(instance).to.respondTo('m')
@@ -94,7 +94,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { C } } = interpret()(e)
+      const { p: { C } } = interpret(langNatives)(e)
       const instance = new C()
 
       expect(instance).to.have.property('f')
@@ -111,7 +111,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { D } } = interpret()(e)
+      const { p: { D } } = interpret(langNatives)(e)
       const instance = new D()
 
       expect(instance).to.respondTo('m')
@@ -128,7 +128,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { D } } = interpret()(e)
+      const { p: { D } } = interpret(langNatives)(e)
       const instance = new D()
 
       expect(instance).to.have.property('f')
@@ -148,7 +148,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { D } } = interpret()(e)
+      const { p: { D } } = interpret(langNatives)(e)
       const instance = new D()
 
       expect(instance).to.respondTo('m')
@@ -166,7 +166,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const jsEnvironment = interpret()(e)
+      const jsEnvironment = interpret(langNatives)(e)
 
       expect(jsEnvironment)
         .to.have.nested.property('p.M').that.is.a('function')
@@ -181,7 +181,7 @@ describe('Wollok interpreter', () => {
           Class('C')(undefined, Reference('M'))()
         )
       )
-      const { p: { C } } = interpret()(e)
+      const { p: { C } } = interpret(langNatives)(e)
       const instance = new C()
 
       expect(instance).to.respondTo('m')
@@ -199,7 +199,7 @@ describe('Wollok interpreter', () => {
       )
 
 
-      const { p: { C } } = interpret()(e)
+      const { p: { C } } = interpret(langNatives)(e)
       const instance = new C()
 
       expect(instance).to.have.property('f')
@@ -220,7 +220,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { C } } = interpret()(e);
+      const { p: { C } } = interpret(langNatives)(e);
       const instance = new C()
 
       expect(instance).to.respondTo('m')
@@ -238,7 +238,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const jsEnvironment = interpret()(e)
+      const jsEnvironment = interpret(langNatives)(e)
 
       expect(jsEnvironment)
         .to.have.nested.property('p.s').that.is.an('object')
@@ -253,7 +253,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { s: instance } } = interpret()(e)
+      const { p: { s: instance } } = interpret(langNatives)(e)
 
       expect(instance).to.respondTo('m')
       expect(instance.m(5)).to.equal(5)
@@ -268,7 +268,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { s: instance } } = interpret()(e)
+      const { p: { s: instance } } = interpret(langNatives)(e)
 
       expect(instance).to.have.property('f')
       expect(instance.f.$inner).to.equal(7)
@@ -284,7 +284,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { s: instance } } = interpret()(e)
+      const { p: { s: instance } } = interpret(langNatives)(e)
 
       expect(instance).to.respondTo('m')
       expect(instance.m(5)).to.equal(5)
@@ -300,7 +300,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { s: instance } } = interpret()(e)
+      const { p: { s: instance } } = interpret(langNatives)(e)
 
       expect(instance).to.have.property('f')
       expect(instance.f.$inner).to.equal(7)
@@ -319,7 +319,7 @@ describe('Wollok interpreter', () => {
         )
       )
 
-      const { p: { s: instance } } = interpret()(e)
+      const { p: { s: instance } } = interpret(langNatives)(e)
 
       expect(instance).to.respondTo('m')
       expect(instance.m().$inner).to.equal(7)
@@ -328,192 +328,190 @@ describe('Wollok interpreter', () => {
 
   })
 
-})
-
-// const interpret = (...asts) => interpreter(langNatives)(lang, ...asts)
-
-describe.skip('Wollok interpreter', () => {
-  let cachedLang;
-
-  const lang = () => {
-    if (!cachedLang) cachedLang = link(parse(readFileSync('src/wre/lang.wlk', 'utf8')))
-    return cachedLang
-  }
-  const expectInterpretationOf = (...asts) => expect(interpret(langNatives)(lang(), ...asts))
-  const expectErrorOnInterpretationOf = (...asts) => ({
-    to: {
-      be(errorType, errorDescription) {
-        expect(() => interpret(langNatives)(lang(), ...asts)).to.throw(errorType, errorDescription)
-      }
-    }
-  })
-
   describe('literals', () => {
 
     it('should interpret boolean literals as Booleans', () => {
-      expectInterpretationOf(Literal(true))
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Literal(true)))))
+
+      expect(interpret(langNatives)(e).p.s.f)
         .to.have.nested.property('constructor.name', '$Boolean')
         .and.also.have.property('$inner', true)
     })
 
     it('should interpret string literals as $String', () => {
-      expectInterpretationOf(Literal('foo'))
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Literal('foo')))))
+
+      expect(interpret(langNatives)(e).p.s.f)
         .to.have.nested.property('constructor.name', '$String')
         .and.also.have.property('$inner', 'foo')
     })
 
     it('should interpret null literals as null', () => {
-      expectInterpretationOf(Literal(null)).to.equal(null)
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Literal(null)))))
+
+      expect(interpret(langNatives)(e).p.s.f).to.be.null
     })
 
     it('should interpret list literals as Lists', () => {
-      expectInterpretationOf(List(Literal(1), Literal(2), Literal(3)))
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, List(Literal(1), Literal(2), Literal(3))))))
+
+      expect(interpret(langNatives)(e).p.s.f)
         .to.satisfy(list => list.size().$inner === 3)
         .and.to.satisfy(list => list.get(0).$inner === 1)
         .and.to.satisfy(list => list.get(1).$inner === 2)
         .and.to.satisfy(list => list.get(2).$inner === 3)
     })
 
-    describe('numbers', () => {
+    it('should interpret round number literals as Integers', () => {
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Literal(5)))))
 
-      it('should interpret round number literals as Integers', () => {
-        expectInterpretationOf(Literal(5))
-          .to.have.nested.property('constructor.name', 'Integer')
-          .and.also.have.property('$inner', 5)
-      })
-
-      it('should interpret non-round number literals as Doubles', () => {
-        expectInterpretationOf(Literal(5.7))
-          .to.have.nested.property('constructor.name', 'Double')
-          .and.also.have.property('$inner', 5.7)
-      })
-
+      expect(interpret(langNatives)(e).p.s.f)
+        .to.have.nested.property('constructor.name', 'Integer')
+        .and.also.have.property('$inner', 5)
     })
 
-    describe('closures', () => {
+    it('should interpret non-round number literals as Doubles', () => {
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Literal(5.7)))))
 
-      it('should interpret closures without parameters', () => {
-        expectInterpretationOf(Send(Closure()(Literal(5)), 'apply')()).to.have.property('$inner', 5)
-      })
-
-      it('should interpret closures with parameters', () => {
-        expectInterpretationOf(Send(Closure(Parameter('p'))(Reference('p')), 'apply')(Literal(5))).to.have.property('$inner', 5)
-      })
-
+      expect(interpret(langNatives)(e).p.s.f)
+        .to.have.nested.property('constructor.name', 'Double')
+        .and.also.have.property('$inner', 5.7)
     })
 
-  })
+    it('should interpret closures without parameters', () => {
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Send(Closure()(Literal(5)), 'apply')()))))
 
-  describe('expressions', () => {
-
-    describe('references', () => {
-
-      it('should interpret declared references', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(5)),
-          Reference('x')
-        ).to.have.property('$inner', 5)
-      })
-
-      it('should interpret undeclared references', () => {
-        expectErrorOnInterpretationOf(Reference('x')).to.be(ReferenceError, 'x is not defined')
-      })
-
+      expect(interpret(langNatives)(e).p.s.f)
+        .to.have.property('$inner', 5)
     })
 
-    describe('try-catch-always', () => {
+    it('should interpret closures with parameters', () => {
+      const e = link(wre, Package('p')(Singleton('s')()(Field('f', false, Send(Closure(Parameter('p'))(Reference('p')), 'apply')(Literal(5))))))
 
-      it('should interpret non-failing tries with catches and no always clauses to be the try body result, ignoring catches', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(),
-          Reference('x')
-        ).to.have.property('$inner', 7)
-      })
-
-      it('should interpret non-failing tries with catches and always clauses to be the always body result after executing the try body, ignoring catches', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
-          Reference('x')
-        ).to.have.property('$inner', 8)
-      })
-
-      it('should interpret non-failing tries with no catches and always clauses to be the always body result after executing the try body', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
-          Reference('x')
-        ).to.have.property('$inner', 8)
-      })
-
-      it('should interpret failing tries with matching catch and no always clauses to be the catch result, ignoring try body after error', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))))(),
-          Reference('x')
-        ).to.have.property('$inner', 1)
-      })
-
-      it('should interpret failing tries with matching catch and always clauses to be the catch result, ignoring try body after error but after executing the always', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '*')(Literal(2)))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
-          Reference('x')
-        ).to.have.property('$inner', 2)
-      })
-
-      it('should interpret failing tries with no catches and always clauses to propagate the error, ignoring try body after error but after executing the always', () => {
-        expectErrorOnInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
-          Reference('x')
-        ).to.be()
-      })
-
-      it('should interpret failing tries with no matching catches to propagate the error, ignoring try body after error', () => {
-        expectErrorOnInterpretationOf(
-          VariableDeclaration(Reference('x'), true, Literal(0)),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5))))(),
-          Reference('x')
-        ).to.be()
-      })
-
-      it('should interpret failing tries with multiple matching catches to the result of the first one, ignoring try body after error', () => {
-        expectInterpretationOf(
-          VariableDeclaration(Reference('x')),
-          Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
-            Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5))),
-            Catch(Reference('e'), 'Exception')(Assignment(Reference('x'), Literal(2))),
-            Catch(Reference('e'))(Assignment(Reference('x'), Literal(6)))
-          )(),
-          Reference('x')
-        ).to.have.property('$inner', 2)
-      })
-
+      expect(interpret(langNatives)(e).p.s.f)
+        .to.have.property('$inner', 5)
     })
 
   })
 
-  describe('sentences', () => {
 
-    it('should interpret assignment of mutable variables', () => {
-      expectInterpretationOf(
-        VariableDeclaration(Reference('x'), true, Literal(1)),
-        Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(4))),
-        Reference('x')
-      ).to.have.property('$inner', 5)
-    })
+})
 
-    it('should interpret assignment of immutable variables as an error', () => {
-      expectErrorOnInterpretationOf(
-        VariableDeclaration(Reference('x'), false, Literal(1)),
-        Assignment(Reference('x'), Literal(5)),
-        Reference('x')
-      ).to.be(TypeError, 'Assignment to constant variable.')
-    })
+// const interpret = (...asts) => interpreter(interpret(langNatives))(lang, ...asts)
 
-  })
+describe.skip('Wollok interpreter', () => {
+
+
+  // describe('expressions', () => {
+
+  //   describe('references', () => {
+
+  //     it('should interpret declared references', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(5)),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 5)
+  //     })
+
+  //     it('should interpret undeclared references', () => {
+  //       expectErrorOnInterpretationOf(Reference('x')).to.be(ReferenceError, 'x is not defined')
+  //     })
+
+  //   })
+
+  //   describe('try-catch-always', () => {
+
+  //     it('should interpret non-failing tries with catches and no always clauses to be the try body result, ignoring catches', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 7)
+  //     })
+
+  //     it('should interpret non-failing tries with catches and always clauses to be the always body result after executing the try body, ignoring catches', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Literal(1))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 8)
+  //     })
+
+  //     it('should interpret non-failing tries with no catches and always clauses to be the always body result after executing the try body', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 8)
+  //     })
+
+  //     it('should interpret failing tries with matching catch and no always clauses to be the catch result, ignoring try body after error', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))))(),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 1)
+  //     })
+
+  //     it('should interpret failing tries with matching catch and always clauses to be the catch result, ignoring try body after error but after executing the always', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'))(Assignment(Reference('x'), Send(Reference('x'), '*')(Literal(2)))))(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 2)
+  //     })
+
+  //     it('should interpret failing tries with no catches and always clauses to propagate the error, ignoring try body after error but after executing the always', () => {
+  //       expectErrorOnInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))()(Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(1)))),
+  //         Reference('x')
+  //       ).to.be()
+  //     })
+
+  //     it('should interpret failing tries with no matching catches to propagate the error, ignoring try body after error', () => {
+  //       expectErrorOnInterpretationOf(
+  //         VariableDeclaration(Reference('x'), true, Literal(0)),
+  //         Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5))))(),
+  //         Reference('x')
+  //       ).to.be()
+  //     })
+
+  //     it('should interpret failing tries with multiple matching catches to the result of the first one, ignoring try body after error', () => {
+  //       expectInterpretationOf(
+  //         VariableDeclaration(Reference('x')),
+  //         Try(Throw(New('Exception')()), Assignment(Reference('x'), Literal(7)))(
+  //           Catch(Reference('e'), 'StackOverflowException')(Assignment(Reference('x'), Literal(5))),
+  //           Catch(Reference('e'), 'Exception')(Assignment(Reference('x'), Literal(2))),
+  //           Catch(Reference('e'))(Assignment(Reference('x'), Literal(6)))
+  //         )(),
+  //         Reference('x')
+  //       ).to.have.property('$inner', 2)
+  //     })
+
+  //   })
+
+  // })
+
+  // describe('sentences', () => {
+
+  //   it('should interpret assignment of mutable variables', () => {
+  //     expectInterpretationOf(
+  //       VariableDeclaration(Reference('x'), true, Literal(1)),
+  //       Assignment(Reference('x'), Send(Reference('x'), '+')(Literal(4))),
+  //       Reference('x')
+  //     ).to.have.property('$inner', 5)
+  //   })
+
+  //   it('should interpret assignment of immutable variables as an error', () => {
+  //     expectErrorOnInterpretationOf(
+  //       VariableDeclaration(Reference('x'), false, Literal(1)),
+  //       Assignment(Reference('x'), Literal(5)),
+  //       Reference('x')
+  //     ).to.be(TypeError, 'Assignment to constant variable.')
+  //   })
+
+  // })
 
 
   //-------------------------------------------------------------------------------------------------------------------------------

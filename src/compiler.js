@@ -71,21 +71,20 @@ const compileWithNatives = (environment, natives) => {
     [Field]: ({ name, value }) => `$instance.${name}=${compile(value)}`,
 
     [Method]: ({ name, parameters, sentences, native, path }) => {
-      const parent = path.parent()(environment)
-      //TODO: IMPLEMENT NATIVES
-      // if (native && !(natives[parent.name] && natives[parent.name][name])) throw new TypeError(`Missing native implementation for ${parent.name}.${name}(...)`)
-      // return `const implementation$$${parameters.length} = ${native
-      //   ? `(function ${natives[parent.name][name].toString().slice(natives[parent.name][name].toString().indexOf('('))}).bind(this)`
-      //   : `(${parameters.map(compile).join()}) => {${compile(sentences)}}`}
-      //   if (args.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? ` >= + ${parameters.length - 1}` : ` === ${parameters.length}`} ) {
-      //     return implementation$$${parameters.length} (...args)
-      //   }`
-      return `const implementation$$${parameters.length} = ${native
-        ? '(function (){}).bind(this)'
-        : `(${parameters.map(compile).join()}) => {${compile(sentences)}}`}
+      const implementation = (() => {
+        if (native) {
+          const nativeCode = path.parent().qualifiedName(environment).split('.').reduce((a, n) => a[n], natives)[name].toString()
+          return `(function ${nativeCode.slice(nativeCode.indexOf('('))}).bind(this)`
+        }
+        return `(${parameters.map(compile).join()}) => {${compile(sentences)}}`
+      })()
+
+      return `
+        const implementation$$${parameters.length} = ${implementation}
         if (args.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? ` >= + ${parameters.length - 1}` : ` === ${parameters.length}`} ) {
           return implementation$$${parameters.length} (...args)
-        }`
+        }
+      `
     },
 
     [VariableDeclaration]: ({ name, writeable, value }) => `${writeable ? 'let' : 'const'} ${name} = ${compile(value)}`,
@@ -149,13 +148,13 @@ const compileWithNatives = (environment, natives) => {
     },
 
     [List]: ({ values }) => `(() => {
-      const l = new List();
+      const l = new $environment.wollok.List();
       l.$inner = [ ${values.map(compile).join()} ]
       return l
     })()`,
 
     [Closure]: ({ parameters, sentences }) => `(() => {
-      const c = new Closure();
+      const c = new $environment.wollok.Closure();
       c.$inner = function (${parameters.map(compile).join()}) { ${compile(sentences)} }
       return c
     })()`,
