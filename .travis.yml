@@ -7,11 +7,8 @@ script:
   - yarn install
   - yarn lint
   - yarn test
-  # - npm run compile
-  # - npm run test
-  # - npm run coverage-test
-  # - npm run lint
+  - yarn coverage-test
 
-# after_success:
-#   - npm run coverage-report
-#   - npm run coverage-upload
+after_success:
+  - yarn coverage-report
+  - yarn coverage-upload
