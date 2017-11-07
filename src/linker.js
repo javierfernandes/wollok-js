@@ -1,6 +1,5 @@
-import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Method, Mixin, Module, New, Node, Package, Reference, Return, Runnable, Send, Singleton, Super, Try, VariableDeclaration, match } from './model'
-
-import { flatMap } from './transformations'
+import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Method, Mixin, Module, New, Node, Package, Reference, Return, Runnable, Send, Singleton, Super, Throw, Try, VariableDeclaration, match } from './model'
+import { addDefaultConstructor, flatMap } from './transformations'
 
 const { isNaN } = Number
 
@@ -28,12 +27,15 @@ export const Path = (...steps) => new Proxy(root => steps.reduce((prev, step) =>
 export default (...packages) => {
   const environment = packages.reduce(mergeInto, Package('')())
 
+  // TODO: Perhaps Txs like addDefaultConstructor should not be done here. Are there any more?
+  const completedEnvironment = addDefaultConstructor(environment)
+
   //TODO: Manejar casos de error
   return [
     linkPath(),
     linkScope,
     linkReferences
-  ].reduce((env, step) => step(env), environment)
+  ].reduce((env, step) => step(env), completedEnvironment)
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -83,7 +85,8 @@ const linkPath = (pathToNode = Path()) => {
     [Closure]: node => node.copy({ path, parameters: linkAllPaths(_ => _.parameters)(node), sentences: linkPath(pathToNode.sentences) }),
     [Send]: node => node.copy({ path, target: linkPath(pathToNode.target), parameters: linkAllPaths(_ => _.parameters)(node) }),
     [Super]: node => node.copy({ path, parameters: linkAllPaths(_ => _.parameters)(node) }),
-    [New]: node => node.copy({ path, parameters: linkAllPaths(_ => _.parameters)(node) }),
+    [New]: node => node.copy({ path, target: linkPath(pathToNode.target), parameters: linkAllPaths(_ => _.parameters)(node) }),
+    [Throw]: node => node.copy({ path, exception: linkPath(pathToNode.exception) }),
     [If]: node => node.copy({ path, condition: linkPath(pathToNode.condition), thenSentences: linkPath(pathToNode.thenSentences), elseSentences: linkPath(pathToNode.elseSentences) }),
     [Try]: node => node.copy({ path, sentences: linkPath(pathToNode.sentences), catches: linkAllPaths(_ => _.catches)(node), always: linkAllPaths(_ => _.always)(node) }),
     [Catch]: node => node.copy({ path, variable: linkPath(pathToNode.variable), handler: linkPath(pathToNode.handler) }),
@@ -135,14 +138,15 @@ const linkScope = environment => {
 //-------------------------------------------------------------------------------------------------------------------------------
 
 const linkReferences = environment => flatMap({
-  //TODO: Fail if the target is not defined?
   [Reference]: node => node.copy({
     target: () => {
       const steps = node.name.split('.')
       //TODO: Add QualifiedName node to avoid the if?
-      return steps.length > 1
+      const target = steps.length > 1
         ? steps.reduce((target, name) => target(environment).elements.find(_ => _.name === name).path, Path())
         : node.scope[node.name]
+      if (!target || !target(environment)) throw new ReferenceError(`Reference ${node.name} is not in scope`)
+      return target
     }
   }),
   [Node]: node => node

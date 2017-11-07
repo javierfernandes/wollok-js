@@ -88,9 +88,11 @@ export const Literal = (value) => node(Literal)({ value })
 export const List = (...values) => node(List)({ values })
 export const Closure = (...parameters) => (...sentences) => node(Closure)({ parameters, sentences: Block(...sentences) })
 
+// TODO: Rename target to receiver
 export const Send = (target, key) => (...parameters) => node(Send)({ target, key, parameters })
 export const Super = (...parameters) => node(Super)({ parameters })
 
+// TODO: Rename target to something else
 export const New = (target) => (...parameters) => node(New)({ target, parameters })
 
 export const If = (condition) => (...thenSentences) => (...elseSentences) => node(If)({ condition, thenSentences: Block(...thenSentences), elseSentences: Block(...elseSentences) })

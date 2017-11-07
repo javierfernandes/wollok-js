@@ -1760,3 +1760,11 @@ object console {
 	 */
 	method newline() native
 }
+
+class StringPrinter {
+	var buffer = ""
+	method println(obj) {
+		buffer += obj.toString() + console.newline()
+	}
+	method getBuffer() = buffer
+}

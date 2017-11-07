@@ -3,8 +3,10 @@ import {
   Catch,
   Class,
   Closure,
+  Field,
   List,
   Literal,
+  Method,
   Mixin,
   New,
   Package,
@@ -66,10 +68,44 @@ describe('Wollok interpreter', () => {
       expect(jsEnvironment)
         .to.have.nested.property('p.C').that.is.a('function')
     })
+
+    it('should provide instances with their methods', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Method('m')(Parameter('a'))(Reference('a'))
+          )
+        )
+      )
+
+      const { p: { C } } = interpret()(e)
+      const instance = new C()
+
+      expect(instance).to.respondTo('m')
+      expect(instance.m(5)).to.equal(5)
+    })
+
+    it('should provide instances with their fields', () => {
+      const e = link(wre,
+        Package('p')(
+          Class('C')()(
+            Field('f', true, Literal(7))
+          )
+        )
+      )
+
+      const { p: { C } } = interpret()(e)
+      const instance = new C()
+
+      expect(instance).to.have.property('f')
+      expect(instance.f.$inner).to.equal(7)
+    })
   })
 
+  // TODO
   describe('Mixins', () => { })
 
+  // TODO
   describe('Objects', () => { })
 
 })
@@ -285,9 +321,5 @@ describe.skip('Wollok interpreter', () => {
   //   Literal(1),
   //   Return(Literal(2))
   // ), 'call')(), 2],
-
-  //-------------------------------------------------------------------------------------------------------------------------------
-  // LIBRARY ELEMENTS
-  //-------------------------------------------------------------------------------------------------------------------------------
 
 })

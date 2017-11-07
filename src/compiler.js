@@ -1,11 +1,8 @@
 import { Assignment, Block, Catch, Class, Closure, Constructor, Field, If, List, Literal, Method, Mixin, New, Package, Parameter, Program, Reference, Return, Self, Send, Singleton, Super, Throw, Try, VariableDeclaration, match } from './model'
 
-import { Link } from './linker'
-import { addDefaultConstructor } from './transformations'
+export default (environment, natives) => compileWithNatives(environment, natives)
 
-// TODO: Txs like addDefaultConstructor should not be done here
-export default (environment, natives) => compileWithNatives(addDefaultConstructor(environment), natives)
-
+//TODO: This code sucks. Hopefully it's just temporary...
 const compileWithNatives = (environment, natives) => {
 
   const compileMethodDispatcher = members => ({ name }) =>
@@ -26,13 +23,13 @@ const compileWithNatives = (environment, natives) => {
       }`,
 
     [Class]: ({ name, superclass, mixins, members }) => {
-      const superclassQualifiedName = `$environment${superclass.target.qualifiedName(environment)}`
+      const superclassQualifiedName = `${name !== 'Object' ? `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}` : 'Object'}`
       return `
-        class ${escape(name)} extends ${name === 'Object' ? 'Object' : `${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclassQualifiedName))}`} {
+        class ${escape(name)} extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, superclassQualifiedName)} {
           constructor() {
             let $instance = undefined
-            ${members.filter(m => m.type === 'Constructor').map(compile).join('\n')}
-            (function(){${members.filter(m => m.type === 'Field').map(compile).join(';\n')}}).call($instance)
+            ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
+            ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
             ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
             return $instance
           }
@@ -40,40 +37,48 @@ const compileWithNatives = (environment, natives) => {
       `
     },
 
-    [Singleton]: ({ name, superclass: superclassName, mixins, superArguments, members }) => {
-      const superclass = superclassName.type === Link.name ? superclassName.token : superclassName
-      return `const ${escape(name)} = new class extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclass))} {
+    [Singleton]: ({ name, superclass, mixins, superArguments, members }) => {
+      const superclassQualifiedName = `$environment.${escapeQualified(superclass.target.qualifiedName(environment))}`
+      return `new class ${escape(name)} extends ${mixins.reduce((parent, mixin) => `${escape(mixin)}(${parent})`, escape(superclassQualifiedName))} {
         constructor(){
-          super(${superArguments.map(compile).join()})
+          $instance = super(${superArguments.map(compile).join()})
           ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
           ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
         }
       }`
     },
 
-    [Mixin]: ({ name, members }) =>
-      `const ${escape(name)} = ($$superclass) => class extends $$superclass {
+    [Mixin]: ({ members }) =>
+      `($$superclass) => class extends $$superclass {
       constructor() {
         let $instance = undefined
-        ${members.filter(m => m.type === 'Constructor').map(compile).join('\n')}
-        (function(){${members.filter(m => m.type === 'Field').map(compile).join(';\n')}}).call($instance)
+        ${members.filter(m => m.type === 'Constructor').map(compile).join(';\n')}
+        ${members.filter(m => m.type === 'Field').map(compile).join(';\n')}
         ${members.filter(m => m.type === 'Method').map(compileMethodDispatcher(members)).join(';\n')}
         return $instance
       }
     }`,
 
-    [Constructor]: ({ parameters, parent, baseArguments, lookUpCall, sentences }) => `
+    [Constructor]: ({ parameters, path, baseArguments, lookUpCall, sentences }) => `
     if(arguments.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? '+ 1 >=' : '==='} ${parameters.length}) {
-      $instance = ${lookUpCall ? 'super' : `new ${parent.name}`}(${baseArguments.map(compile).join()});
+      $instance = ${lookUpCall ? 'super' : `new ${path.parent()(environment).name}`}(${baseArguments.map(compile).join()});
       (function (${parameters.map(compile).join()}){${compile(sentences)}}).call($instance,...arguments)
     }`,
 
-    [Field]: ({ name, value }) => `${name}=${compile(value)}`,
+    [Field]: ({ name, value }) => `$instance.${name}=${compile(value)}`,
 
-    [Method]: ({ name, parameters, sentences, native, parent }) => {
-      if (native && !(natives[parent.name] && natives[parent.name][name])) throw new TypeError(`Missing native implementation for ${parent.name}.${name}(...)`)
+    [Method]: ({ name, parameters, sentences, native, path }) => {
+      const parent = path.parent()(environment)
+      //TODO: IMPLEMENT NATIVES
+      // if (native && !(natives[parent.name] && natives[parent.name][name])) throw new TypeError(`Missing native implementation for ${parent.name}.${name}(...)`)
+      // return `const implementation$$${parameters.length} = ${native
+      //   ? `(function ${natives[parent.name][name].toString().slice(natives[parent.name][name].toString().indexOf('('))}).bind(this)`
+      //   : `(${parameters.map(compile).join()}) => {${compile(sentences)}}`}
+      //   if (args.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? ` >= + ${parameters.length - 1}` : ` === ${parameters.length}`} ) {
+      //     return implementation$$${parameters.length} (...args)
+      //   }`
       return `const implementation$$${parameters.length} = ${native
-        ? `(function ${natives[parent.name][name].toString().slice(natives[parent.name][name].toString().indexOf('('))}).bind(this)`
+        ? '(function (){}).bind(this)'
         : `(${parameters.map(compile).join()}) => {${compile(sentences)}}`}
         if (args.length ${(parameters.length && parameters.slice(-1)[0].varArg) ? ` >= + ${parameters.length - 1}` : ` === ${parameters.length}`} ) {
           return implementation$$${parameters.length} (...args)
@@ -86,19 +91,11 @@ const compileWithNatives = (environment, natives) => {
 
     [Self]: () => 'this',
 
-    [Reference]: ({ name }) => {
-      //TODO: UPDATE THIS CODE TO THE NEW LINKER
-      // unresolved
-      if (name.type !== Link.name) return escape(name)
-      // resolved
-      const { token } = name
-      const resolved = null//resolvePath(name, path)
-      return (`${resolved.type === 'Field' ? 'this.' : ''}${escape(token)}`)
-    },
+    [Reference]: ({ name, target }) => `${target(environment).type === 'Field' ? 'this.' : ''}${escape(name)}`,
 
     [Send]: ({ target, key, parameters }) => `${compile(target)}["${escape(key)}"](${parameters.map(compile).join()})`,
 
-    [New]: ({ target, parameters }) => `new ${escape(target.type === Link.name ? target.token : target)}(${parameters.map(compile).join()})`,
+    [New]: ({ target, parameters }) => `(new (${escapeQualified(target.target.qualifiedName(environment))})(${parameters.map(compile).join()}))`,
 
     [Super]: ({ parameters }) => `super(${parameters.map(compile).join()})`,
 
@@ -124,23 +121,23 @@ const compileWithNatives = (environment, natives) => {
 
     [Catch]: ({ variable, errorType, handler }) =>
       `if (${errorType ? `$error instanceof ${errorType}` : 'true'} ) {
-        return ((${compile(variable)}) => {${compile(handler)}})($error)
-      }`,
+      return ((${compile(variable)}) => {${compile(handler)}})($error)
+    }`,
 
     [Literal]: ({ value }) => {
       switch (typeof value) {
         case 'number': return `(()=>{
-          const $value = new ${value % 1 === 0 ? 'Integer' : 'Double'}()
+          const $value = new ${value % 1 === 0 ? '$environment.wollok.Integer' : '$environment.wollok.Double'}()
           $value.$inner = ${value}
           return $value
         })()`
         case 'string': return `(()=>{
-          const $value = new $String()
+          const $value = new $environment.wollok.$String()
           $value.$inner = "${value.replace(/"/g, '\\"')}"
           return $value
         })()`
         case 'boolean': return `(()=>{
-          const $value = new $Boolean()
+          const $value = new $environment.wollok.$Boolean()
           $value.$inner = ${value}
           return $value
         })()`
@@ -178,6 +175,7 @@ const compileWithNatives = (environment, natives) => {
   return `${compile(environment)};$environment`
 }
 
+// TODO: Perhaps the name of things should be a separate node, so this can be just a separate pattern
 const escape = str => ([
   'abstract', 'arguments', 'await', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default',
   'delete', 'do', 'double', 'else', 'enum', 'eval', 'export', 'extends', 'false', 'final', 'finally', 'float', 'for', 'function', 'goto', 'if',
@@ -186,22 +184,5 @@ const escape = str => ([
   'var', 'void', 'volatile', 'while', 'with', 'yield', 'Object', 'Boolean', 'String', 'Set'
 ].indexOf(str) >= 0 ? `$${str}` : str)
 
-const hoist = (unhoisted, hoisted = []) => {
-  if (!unhoisted.length) return hoisted
-
-  const [next, ...others] = unhoisted
-
-  const hoistedParentIndex = hoisted.findIndex(e => next.superclass === e.name)
-  if (hoistedParentIndex >= 0) {
-    const [parent, ...otherHoisted] = hoisted.splice(hoistedParentIndex)
-    return hoist(others, [...hoisted, parent, next, ...otherHoisted])
-  }
-
-  const unhoistedParentIndex = others.findIndex(e => next.superclass === e.name)
-  if (unhoistedParentIndex >= 0) {
-    const [parent, ...otherUnhoisted] = others.splice(unhoistedParentIndex)
-    return hoist([parent, next, ...others, ...otherUnhoisted], hoisted)
-  }
-
-  return hoist(others, [...hoisted, next])
-}
+// TODO: Perhaps the qualified name should be a separate node, so this can be just a separate pattern
+const escapeQualified = str => str.split('.').map(escape).join('.')
