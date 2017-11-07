@@ -17,14 +17,14 @@ yarn install
 And then to run tests
 
 ```bash
-yarn gulp test
+yarn test
 # or npm test
 ```
 
 To lint the code
 
 ```bash
-yarn gulp lint
+yarn lint
 # or npm run lint
 ```
 
